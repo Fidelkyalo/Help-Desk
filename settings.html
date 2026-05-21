@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Account Settings - Help Desk</title>
+  <link rel="icon" type="image/png" href="Images/Logo.png" />
+  <link rel="shortcut icon" type="image/png" href="Images/Logo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/main.css" />
+  <link rel="stylesheet" href="css/dashboard.css" />
+  <link rel="stylesheet" href="css/tickets.css" />
+  <link rel="stylesheet" href="css/responsive.css" />
+  <script src="js/theme.js"></script>
+  <style>
+    /* iOS-style toggle switches */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+    }
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      transition: .3s cubic-bezier(0.16, 1, 0.3, 1);
+      border-radius: 24px;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 2px;
+      bottom: 2px;
+      background-color: #fff;
+      transition: .3s cubic-bezier(0.16, 1, 0.3, 1);
+      border-radius: 50%;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    input:checked + .slider {
+      background-color: #4f46e5;
+      border-color: rgba(99, 102, 241, 0.5);
+    }
+    input:checked + .slider:before {
+      transform: translateX(20px);
+    }
+    @keyframes slideUp {
+      from { transform: translateY(24px); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<div class="app">
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <a href="dashboard.html" class="sidebar__brand">
+      <div class="sidebar__brand-icon">
+        <img src="Images/Logo.png" alt="Help Desk Logo" />
+      </div>
+      <div>
+        <div class="sidebar__brand-name">Help Desk</div>
+        <div class="sidebar__brand-sub">Support Portal</div>
+      </div>
+    </a>
+    <nav class="sidebar__nav">
+      <div class="sidebar__section-label">Menu</div>
+      <a href="dashboard.html" class="sidebar__link">
+        <span class="sidebar__link-icon">🏠</span> Dashboard
+      </a>
+      <a href="ticket-new.html" class="sidebar__link">
+        <span class="sidebar__link-icon">➕</span> Report Issue
+      </a>
+      <a href="settings.html" class="sidebar__link active">
+        <span class="sidebar__link-icon">⚙️</span> Settings
+      </a>
+    </nav>
+    <div class="sidebar__footer">
+      <div class="sidebar__user">
+        <div class="sidebar__avatar" id="userAvatar">?</div>
+        <div class="sidebar__user-info">
+          <div class="sidebar__user-name" id="userName">Loading…</div>
+          <div class="sidebar__user-role">Member</div>
+        </div>
+        <button class="sidebar__logout" id="logoutBtn" title="Logout">Log out</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <header class="header">
+      <div class="header__left">
+        <button class="hamburger" id="hamburger" aria-label="Toggle menu">☰</button>
+        <div>
+          <div class="header__title">Account Settings</div>
+          <div class="header__subtitle">Manage your profile and notification choices</div>
+        </div>
+      </div>
+      <a href="dashboard.html" class="btn btn--secondary btn--sm">← Back</a>
+        <button class="theme-toggle" aria-label="Toggle theme">☀️</button>
+      </header>
+
+    <main class="content">
+      <div style="max-width:680px">
+        <div class="card">
+          <div class="card__header">
+            <span class="card__title">Profile Information</span>
+          </div>
+
+          <div id="formAlert" class="auth-alert auth-alert--error" style="margin-bottom:1rem"></div>
+
+          <form id="settingsForm" novalidate>
+            <div class="form-group">
+              <label class="form-label" for="fullName">Full Name *</label>
+              <input class="form-input" type="text" id="fullName" placeholder="Your full name" required />
+              <span class="form-error" id="nameError"></span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="email">Email Address (Read-only)</label>
+              <input class="form-input" type="email" id="email" disabled style="opacity: 0.65; cursor: not-allowed;" />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="phone">Phone Number *</label>
+              <input class="form-input" type="tel" id="phone" placeholder="+1234567890" required />
+              <span class="form-error" id="phoneError"></span>
+            </div>
+
+            <div class="card__header" style="margin-top: 2rem; margin-bottom: 1rem; border-top: 1px solid var(--border); padding-top: 1.5rem;">
+              <span class="card__title" style="font-size: 1rem;">Security & Password</span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="newPassword">New Password (Leave blank to keep current)</label>
+              <input class="form-input" type="password" id="newPassword" placeholder="Min. 8 characters" autocomplete="new-password" />
+              <span class="form-error" id="newPasswordError"></span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="confirmPassword">Confirm New Password</label>
+              <input class="form-input" type="password" id="confirmPassword" placeholder="Re-type new password" autocomplete="new-password" />
+              <span class="form-error" id="confirmPasswordError"></span>
+            </div>
+
+            <div class="card__header" style="margin-top: 2rem; margin-bottom: 1rem; border-top: 1px solid var(--border); padding-top: 1.5rem;">
+              <span class="card__title" style="font-size: 1rem;">Notification Preferences</span>
+            </div>
+
+            <div class="form-group" style="display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: 0.5rem 0; text-align: left; gap: 1rem;">
+              <div style="text-align: left;">
+                <strong style="font-size: 0.9rem; display: block; text-align: left;">Email Notifications</strong>
+                <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.15rem; text-align: left;">Receive mail alerts on updates.</p>
+              </div>
+              <label class="switch" style="flex-shrink: 0;">
+                <input type="checkbox" id="emailNotif" checked>
+                <span class="slider"></span>
+              </label>
+            </div>
+
+            <div class="form-group" style="display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: 0.5rem 0; text-align: left; gap: 1rem;">
+              <div style="text-align: left;">
+                <strong style="font-size: 0.9rem; display: block; text-align: left;">SMS Alerts</strong>
+                <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.15rem; text-align: left;">Receive simulated SMS messages.</p>
+              </div>
+              <label class="switch" style="flex-shrink: 0;">
+                <input type="checkbox" id="smsNotif" checked>
+                <span class="slider"></span>
+              </label>
+            </div>
+
+            <div class="form-group" style="display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: 0.5rem 0; text-align: left; gap: 1rem;">
+              <div style="text-align: left;">
+                <strong style="font-size: 0.9rem; display: block; text-align: left;">WhatsApp Simulation</strong>
+                <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.15rem; text-align: left;">Enable real-time WhatsApp banners.</p>
+              </div>
+              <label class="switch" style="flex-shrink: 0;">
+                <input type="checkbox" id="whatsappNotif" checked>
+                <span class="slider"></span>
+              </label>
+            </div>
+
+            <div style="display:flex;gap:.75rem;flex-wrap:wrap; margin-top: 2rem;">
+              <button type="submit" class="btn btn--primary" id="saveBtn">Save Changes</button>
+              <a href="dashboard.html" class="btn btn--secondary">Cancel</a>
+            </div>
+          </form>
+        </div>
+
+        <!-- ⚠️ Danger Zone -->
+        <div class="card" style="margin-top:1.5rem;border-color:rgba(220,38,38,0.35);background:var(--danger-light);">
+          <div class="card__header">
+            <span class="card__title" style="color:var(--danger);">⚠️ Danger Zone</span>
+          </div>
+          <p style="color:var(--text-muted);font-size:0.875rem;margin-bottom:1.5rem;line-height:1.6;">
+            Permanently delete your account and all associated data, including support tickets and profile information.
+            <strong style="color:var(--danger);">This action is irreversible.</strong>
+          </p>
+          <button type="button" id="deleteAccountBtn" class="btn btn--sm" style="
+            background:var(--danger-light);color:var(--danger);
+            border:1px solid rgba(220,38,38,0.4);border-radius:var(--radius-sm);
+            padding:0.65rem 1.25rem;font-size:0.875rem;font-weight:600;
+            cursor:pointer;display:inline-flex;align-items:center;gap:0.5rem;
+            font-family:inherit;transition:all 0.2s;
+          ">🗑️ Delete My Account</button>
+        </div>
+
+      </div>
+    </main>
+
+    <footer class="app-footer">
+      <div class="app-footer__copyright">
+        Ministry of Labour and Social Protection &middot; State Department for Social Protection and Senior Citizen Affairs &middot; GOK &middot; Help Desk Support. &copy; <span id="footerYear">2026</span> All rights reserved.
+      </div>
+      <div class="app-footer__brand">
+        <img src="Images/Logo.png" alt="Help Desk Logo" style="width: 16px; height: 16px; display: inline-block; vertical-align: middle; margin-right: 4px;" /> Help Desk Support
+      </div>
+    </footer>
+  </div>
+</div>
+
+<!-- ===== Delete Account Modal ===== -->
+<div id="deleteAccountModal" style="
+  display:none;position:fixed;inset:0;z-index:1000;
+  background:rgba(0,0,0,0.6);backdrop-filter:blur(6px);
+  align-items:center;justify-content:center;padding:1rem;
+">
+  <div style="
+    background:var(--surface-solid);border:1px solid rgba(220,38,38,0.35);
+    border-radius:18px;padding:2rem;max-width:440px;width:100%;
+    box-shadow:0 25px 60px rgba(0,0,0,0.3);animation:slideUp 0.3s ease;
+  ">
+    <div style="text-align:center;margin-bottom:1.5rem;">
+      <div style="
+        width:64px;height:64px;border-radius:50%;
+        background:var(--danger-light);border:2px solid rgba(220,38,38,0.45);
+        display:flex;align-items:center;justify-content:center;
+        font-size:1.8rem;margin:0 auto 1rem;
+      ">🗑️</div>
+      <h2 style="color:var(--text);font-size:1.25rem;font-weight:700;margin-bottom:0.5rem;">Delete Your Account</h2>
+      <p style="color:var(--text-muted);font-size:0.875rem;line-height:1.6;">
+        This will permanently remove your account and all your data.
+        This action <strong style="color:var(--danger);">cannot be undone</strong>.
+      </p>
+    </div>
+    <div style="margin-bottom:1.25rem;">
+      <label style="
+        display:block;font-size:0.78rem;color:var(--text-muted);
+        margin-bottom:0.5rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;
+      ">Type <span style="color:var(--danger);font-family:monospace;">DELETE</span> to confirm</label>
+      <input type="text" id="deleteConfirmInput" placeholder="DELETE" autocomplete="off" class="form-input" style="border-color:rgba(220,38,38,0.35);" />
+    </div>
+    <div id="deleteModalError" style="
+      background:var(--danger-light);border:1px solid rgba(220,38,38,0.3);
+      border-radius:8px;padding:0.75rem 1rem;color:var(--danger);font-size:0.85rem;
+      margin-bottom:1rem;display:none;
+    "></div>
+    <div style="display:flex;gap:0.75rem;">
+      <button id="confirmDeleteAccountBtn" style="
+        flex:1;background:linear-gradient(135deg,#dc2626,#b91c1c);color:#fff;
+        border:none;border-radius:8px;padding:0.75rem;font-size:0.9rem;
+        font-weight:600;cursor:pointer;font-family:inherit;
+      ">Delete Account</button>
+      <button id="cancelDeleteAccountBtn" class="btn btn--secondary" style="flex:1;">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/tickets.js"></script>
+<script src="js/notifications.js"></script>
+<script src="js/demo-controls.js"></script>
+<script>
+  let currentUser = null;
+  let currentProfile = null;
+
+  async function init() {
+    const session = await requireCustomer();
+    if (!session) return;
+    currentUser = session.user;
+    currentProfile = await getCurrentProfile();
+    
+    if (currentProfile) {
+      document.getElementById('userName').textContent = currentProfile.full_name || 'User';
+      document.getElementById('userAvatar').textContent = (currentProfile.full_name || 'U')[0].toUpperCase();
+    } else if (currentUser && currentUser.email) {
+      const fallbackName = currentUser.email.split('@')[0];
+      document.getElementById('userName').textContent = fallbackName;
+      document.getElementById('userAvatar').textContent = fallbackName[0].toUpperCase();
+    }
+    if (currentProfile) {
+
+      document.getElementById('fullName').value = currentProfile.full_name || '';
+      document.getElementById('email').value = currentProfile.email || currentUser.email || '';
+      document.getElementById('phone').value = currentProfile.phone || '';
+      
+      // Load local preferences
+      const mailPref = localStorage.getItem('pref_email_' + currentUser.id) !== 'false';
+      const smsPref = localStorage.getItem('pref_sms_' + currentUser.id) !== 'false';
+      const waPref = localStorage.getItem('pref_whatsapp_' + currentUser.id) !== 'false';
+      
+      document.getElementById('emailNotif').checked = mailPref;
+      document.getElementById('smsNotif').checked = smsPref;
+      document.getElementById('whatsappNotif').checked = waPref;
+    }
+  }
+
+  document.getElementById('settingsForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fullName = document.getElementById('fullName').value.trim();
+    const phone = document.getElementById('phone').value.trim();
+    const newPassword = document.getElementById('newPassword').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+    const alertEl = document.getElementById('formAlert');
+    const btn = document.getElementById('saveBtn');
+
+    ['nameError','phoneError','newPasswordError','confirmPasswordError'].forEach(clearError);
+    alertEl.style.display = 'none';
+
+    let valid = true;
+    if (!fullName) { showError('nameError', 'Full name is required'); valid = false; }
+    if (!phone) { showError('phoneError', 'Phone number is required'); valid = false; }
+    
+    if (newPassword) {
+      if (newPassword.length < 8) {
+        showError('newPasswordError', 'Password must be at least 8 characters');
+        valid = false;
+      }
+      if (newPassword !== confirmPassword) {
+        showError('confirmPasswordError', 'Passwords do not match');
+        valid = false;
+      }
+    }
+    
+    if (!valid) return;
+
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+
+    try {
+      // 1. Update Profile in Supabase
+      const { data, error } = await supabaseClient
+        .from('profiles')
+        .update({ full_name: fullName, phone: phone })
+        .eq('id', currentUser.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // 2. Update Password if specified
+      if (newPassword) {
+        const { error: authError } = await supabaseClient.auth.updateUser({
+          password: newPassword
+        });
+        if (authError) throw authError;
+      }
+
+      // 3. Save local preferences in localStorage
+      localStorage.setItem('pref_email_' + currentUser.id, document.getElementById('emailNotif').checked);
+      localStorage.setItem('pref_sms_' + currentUser.id, document.getElementById('smsNotif').checked);
+      localStorage.setItem('pref_whatsapp_' + currentUser.id, document.getElementById('whatsappNotif').checked);
+
+      showToast('Account settings updated successfully!', 'success');
+      setTimeout(() => window.location.reload(), 1200);
+    } catch (err) {
+      alertEl.textContent = err.message || 'Failed to save changes. Please try again.';
+      alertEl.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Save Changes';
+    }
+  });
+
+  // Hamburger
+  document.getElementById('hamburger').addEventListener('click', () => {
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('sidebarOverlay').classList.toggle('active');
+  });
+  document.getElementById('sidebarOverlay').addEventListener('click', () => {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebarOverlay').classList.remove('active');
+  });
+
+  document.getElementById('logoutBtn').addEventListener('click', logout);
+  init();
+
+  // ── Delete Account ────────────────────────────────────────────────────────
+  const _delModal = document.getElementById('deleteAccountModal');
+
+  document.getElementById('deleteAccountBtn').addEventListener('click', () => {
+    _delModal.style.display = 'flex';
+    document.getElementById('deleteConfirmInput').value = '';
+    document.getElementById('deleteModalError').style.display = 'none';
+  });
+
+  document.getElementById('cancelDeleteAccountBtn').addEventListener('click', () => {
+    _delModal.style.display = 'none';
+  });
+
+  _delModal.addEventListener('click', e => {
+    if (e.target === _delModal) _delModal.style.display = 'none';
+  });
+
+  document.getElementById('confirmDeleteAccountBtn').addEventListener('click', async () => {
+    const confirmText = document.getElementById('deleteConfirmInput').value.trim();
+    const errorEl    = document.getElementById('deleteModalError');
+    const btn        = document.getElementById('confirmDeleteAccountBtn');
+    errorEl.style.display = 'none';
+
+    if (confirmText !== 'DELETE') {
+      errorEl.textContent = 'Please type DELETE (in uppercase) to confirm.';
+      errorEl.style.display = 'block';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Deleting…';
+
+    try {
+      const userId = currentUser.id;
+
+      if (window.isDemoMode) {
+        // Manual cascade cleanup in demo/localStorage mode
+        const tickets = JSON.parse(localStorage.getItem('db_tickets')) || [];
+        const userTicketIds = tickets.filter(t => t.user_id === userId).map(t => t.id);
+
+        const replies = JSON.parse(localStorage.getItem('db_ticket_replies')) || [];
+        localStorage.setItem('db_ticket_replies', JSON.stringify(
+          replies.filter(r => !userTicketIds.includes(r.ticket_id) && r.author_id !== userId)
+        ));
+        localStorage.setItem('db_tickets', JSON.stringify(
+          tickets.filter(t => t.user_id !== userId)
+        ));
+        const creds = JSON.parse(localStorage.getItem('db_auth_credentials')) || [];
+        localStorage.setItem('db_auth_credentials', JSON.stringify(
+          creds.filter(c => c.id !== userId)
+        ));
+        const profiles = JSON.parse(localStorage.getItem('db_profiles')) || [];
+        localStorage.setItem('db_profiles', JSON.stringify(
+          profiles.filter(p => p.id !== userId)
+        ));
+        localStorage.removeItem('db_active_session');
+      } else {
+        // Live Supabase: delete profile row (cascades tickets/replies via FK)
+        const { error } = await supabaseClient.from('profiles').delete().eq('id', userId);
+        if (error) throw error;
+        await supabaseClient.auth.signOut();
+      }
+
+      showToast('Your account has been permanently deleted.', 'success');
+      setTimeout(() => { window.location.href = 'index.html'; }, 1800);
+    } catch (err) {
+      errorEl.textContent = err.message || 'Failed to delete account. Please try again.';
+      errorEl.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Delete Account';
+    }
+  });
+</script>
+</body>
+</html>

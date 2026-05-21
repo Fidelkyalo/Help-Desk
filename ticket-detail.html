@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ticket Detail - Help Desk</title>
+  <link rel="icon" type="image/png" href="Images/Logo.png" />
+  <link rel="shortcut icon" type="image/png" href="Images/Logo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/main.css" />
+  <link rel="stylesheet" href="css/dashboard.css" />
+  <link rel="stylesheet" href="css/tickets.css" />
+  <link rel="stylesheet" href="css/responsive.css" />
+  <script src="js/theme.js"></script>
+</head>
+<body>
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<div class="app">
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <a href="dashboard.html" class="sidebar__brand">
+      <div class="sidebar__brand-icon">
+        <img src="Images/Logo.png" alt="Help Desk Logo" />
+      </div>
+      <div>
+        <div class="sidebar__brand-name">Help Desk</div>
+        <div class="sidebar__brand-sub">Support Portal</div>
+      </div>
+    </a>
+    <nav class="sidebar__nav">
+      <div class="sidebar__section-label">Menu</div>
+      <a href="dashboard.html" class="sidebar__link">
+        <span class="sidebar__link-icon">🏠</span> Dashboard
+      </a>
+      <a href="ticket-new.html" class="sidebar__link">
+        <span class="sidebar__link-icon">➕</span> Report Issue
+      </a>
+      <a href="settings.html" class="sidebar__link">
+        <span class="sidebar__link-icon">⚙️</span> Settings
+      </a>
+    </nav>
+    <div class="sidebar__footer">
+      <div class="sidebar__user">
+        <div class="sidebar__avatar" id="userAvatar">?</div>
+        <div class="sidebar__user-info">
+          <div class="sidebar__user-name" id="userName">Loading…</div>
+          <div class="sidebar__user-role">Member</div>
+        </div>
+        <button class="sidebar__logout" id="logoutBtn" title="Logout">Log out</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <header class="header">
+      <div class="header__left">
+        <button class="hamburger" id="hamburger" aria-label="Toggle menu">☰</button>
+        <div>
+          <div class="header__title">Ticket Detail</div>
+          <div class="header__subtitle" id="headerTicketNum">Loading…</div>
+        </div>
+      </div>
+      <a href="dashboard.html" class="btn btn--secondary btn--sm">← Back</a>
+        <button class="theme-toggle" aria-label="Toggle theme">☀️</button>
+      </header>
+
+    <main class="content">
+      <div class="ticket-detail" id="ticketDetail">
+        <div class="page-loader"><div class="spinner"></div></div>
+      </div>
+    </main>
+
+  <footer class="app-footer">
+  <div class="app-footer__copyright">
+    Ministry of Labour and Social Protection &middot; State Department for Social Protection and Senior Citizen Affairs &middot; GOK &middot; Help Desk Support. &copy; <span id="footerYear">2026</span> All rights reserved.
+  </div>
+  <div class="app-footer__brand">
+    <img src="Images/Logo.png" alt="Help Desk Logo" style="width: 16px; height: 16px; display: inline-block; vertical-align: middle; margin-right: 4px;" /> Help Desk Support
+  </div>
+</footer>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/tickets.js"></script>
+<script src="js/realtime.js"></script>
+<script src="js/notifications.js"></script>
+<script src="js/demo-controls.js"></script>
+<script>
+  let currentUser = null;
+  let currentProfile = null;
+  let ticketId = null;
+  let ticket = null;
+
+  async function init() {
+    const session = await requireCustomer();
+    if (!session) return;
+    currentUser = session.user;
+    currentProfile = await getCurrentProfile();
+
+    if (currentProfile) {
+      document.getElementById('userName').textContent = currentProfile.full_name || 'User';
+      document.getElementById('userAvatar').textContent = (currentProfile.full_name || 'U')[0].toUpperCase();
+    } else if (currentUser && currentUser.email) {
+      const fallbackName = currentUser.email.split('@')[0];
+      document.getElementById('userName').textContent = fallbackName;
+      document.getElementById('userAvatar').textContent = fallbackName[0].toUpperCase();
+    }
+    if (currentProfile) {
+    }
+
+    ticketId = getParam('id');
+    console.log('Ticket Detail Init — Ticket ID:', ticketId);
+    if (!ticketId) {
+      console.warn('Redirecting: No ticket ID found in URL search parameters:', window.location.search);
+      document.getElementById('ticketDetail').innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state__icon">⚠️</div>
+          <div class="empty-state__title">No Ticket Selected</div>
+          <p>No valid ticket ID was found in the URL.</p>
+          <div style="font-size: 0.8rem; background: rgba(0,0,0,0.2); padding: 0.75rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); margin: 0.75rem 0; text-align: left; font-family: monospace; color: var(--text-muted); word-break: break-all;">
+            <strong>Detected URL:</strong><br/>
+            ${escapeHtml(window.location.href)}
+          </div>
+          <p>Redirecting to dashboard overview in 5 seconds...</p>
+        </div>`;
+      setTimeout(() => {
+        window.location.href = 'dashboard.html';
+      }, 5000);
+      return;
+    }
+
+    await loadTicket();
+
+    // Realtime replies
+    subscribeToReplies(ticketId, (newReply) => {
+      appendReply(newReply);
+
+      // If it's an admin reply, trigger simulated notification and show a toast
+      if (newReply.is_admin_reply) {
+        showToast('💬 Admin replied to your ticket.', 'info');
+        const userEmail = currentProfile?.email || currentUser?.email || 'member@example.com';
+        const userName = currentProfile?.full_name || 'Member';
+
+        notifyAdminReplied({
+          ticket: ticket,
+          userEmail: userEmail,
+          userName: userName
+        }).catch(err => console.error('Realtime notification error:', err));
+      }
+    });
+
+    // Realtime single ticket status updates
+    subscribeToSingleTicket(ticketId, (updatedTicket) => {
+      const oldStatus = ticket ? ticket.status : null;
+      if (updatedTicket.status !== oldStatus) {
+        if (updatedTicket.status === 'Resolved') {
+          showToast('✅ Your ticket has been resolved!', 'success');
+        } else {
+          showToast(`ℹ️ Ticket status updated to: ${updatedTicket.status}`, 'info');
+        }
+      }
+
+      if (updatedTicket.status === 'Resolved' && (!ticket || ticket.status !== 'Resolved')) {
+        if (ticket) ticket.status = 'Resolved';
+
+        // Reload details to securely lock down UI and forms
+        loadTicket();
+
+        // Trigger simulated notifications
+        const userEmail = currentProfile?.email || currentUser?.email || 'member@example.com';
+        const userPhone = currentProfile?.phone || '+123456789';
+        const userName = currentProfile?.full_name || 'Member';
+
+        notifyTicketResolved({
+          ticket: updatedTicket,
+          userEmail: userEmail,
+          userPhone: userPhone,
+          userName: userName
+        }).catch(err => console.error('Realtime resolution notification error:', err));
+      } else {
+        loadTicket();
+      }
+    });
+  }
+
+  async function loadTicket() {
+    try {
+      ticket = await fetchTicketById(ticketId);
+      const replies = await fetchReplies(ticketId);
+      renderTicket(ticket, replies);
+      document.getElementById('headerTicketNum').textContent = formatTicketNumber(ticket.ticket_number, ticketId);
+    } catch (e) {
+      document.getElementById('ticketDetail').innerHTML =
+        `<div class="empty-state"><div class="empty-state__icon">⚠️</div><div class="empty-state__title">Ticket not found</div></div>`;
+    }
+  }
+
+  function renderTicket(t, replies) {
+    document.getElementById('ticketDetail').innerHTML = `
+      <!-- Header -->
+      <div class="ticket-detail__header" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+        <div>
+          <div class="ticket-detail__number">Ticket ${formatTicketNumber(t.ticket_number, t.id)}</div>
+          <div class="ticket-detail__title">${escapeHtml(t.subject)}</div>
+          <div class="ticket-detail__meta">
+            ${statusBadge(t.status)}
+            ${priorityBadge(t.priority)}
+            <span class="ticket-detail__meta-item">📁 ${escapeHtml(t.category)}</span>
+            <span class="ticket-detail__meta-item">🕐 ${formatDate(t.created_at)}</span>
+          </div>
+        </div>
+        ${t.status === 'Pending' ? `
+        <div>
+          <button id="resolveTicketBtn" class="btn btn--secondary btn--sm" style="border-color: rgba(52,211,153,0.3); color: #34d399; font-weight: 600;">✅ Mark as Resolved</button>
+        </div>` : ''}
+      </div>
+
+      <!-- Description -->
+      <div class="ticket-detail__description">
+        <h3 style="margin-bottom:.75rem;font-size:.95rem">Description</h3>
+        <p>${escapeHtml(t.description)}</p>
+      </div>
+
+      <!-- Replies -->
+      <div class="replies">
+        <div class="replies__header">💬 Conversation (${replies.length})</div>
+        <div class="replies__list" id="repliesList">
+          ${replies.length ? replies.map(renderReplyHtml).join('') : '<div class="empty-state" style="padding:2rem"><p>No replies yet. An admin will respond shortly.</p></div>'}
+        </div>
+      </div>
+
+      <!-- Reply Form (only if not resolved) -->
+      ${t.status === 'Pending' ? `
+      <div class="reply-form">
+        <div class="reply-form__title">Add a Reply</div>
+        <form id="replyForm" novalidate>
+          <div class="form-group">
+            <textarea class="form-textarea" id="replyMessage" placeholder="Type your message…" style="min-height:100px" required></textarea>
+            <span class="form-error" id="replyError"></span>
+          </div>
+          <button type="submit" class="btn btn--primary" id="replyBtn">Send Reply</button>
+        </form>
+      </div>` : `
+      <div class="card" style="text-align:center;padding:1.5rem">
+        <span style="font-size:1.5rem">✅</span>
+        <p style="margin-top:.5rem;color:var(--success);font-weight:600">This ticket has been resolved.</p>
+        <a href="ticket-new.html" class="btn btn--primary btn--sm" style="margin-top:1rem">Report Issue</a>
+      </div>`}
+    `;
+
+    // Attach reply form handler
+    const replyForm = document.getElementById('replyForm');
+    if (replyForm) {
+      replyForm.addEventListener('submit', handleReply);
+    }
+    
+    // Attach resolve ticket handler
+    const resolveBtn = document.getElementById('resolveTicketBtn');
+    if (resolveBtn) {
+      resolveBtn.addEventListener('click', handleResolveTicket);
+    }
+  }
+
+  async function handleResolveTicket() {
+    if (!confirm('Are you sure you want to mark this issue as resolved?')) return;
+    
+    const btn = document.getElementById('resolveTicketBtn');
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Resolving...';
+    }
+
+    try {
+      await closeTicketUser(ticketId);
+      showToast('Issue successfully marked as resolved.', 'success');
+      if (ticket) ticket.status = 'Resolved';
+      loadTicket(); // Refresh UI to lock it
+    } catch (err) {
+      showToast(err.message || 'Failed to resolve ticket', 'error');
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = '✅ Mark as Resolved';
+      }
+    }
+  }
+
+  function renderReplyHtml(r) {
+    const isAdmin = r.is_admin_reply;
+    const name = r.profiles?.full_name || (isAdmin ? 'Admin' : 'User');
+    const initial = name[0].toUpperCase();
+    return `
+      <div class="reply ${isAdmin ? 'reply--admin' : ''}">
+        <div class="reply__avatar ${isAdmin ? 'reply__avatar--admin' : 'reply__avatar--user'}">${initial}</div>
+        <div class="reply__body">
+          <div class="reply__meta">
+            <span class="reply__author">${escapeHtml(name)}</span>
+            ${isAdmin ? '<span class="reply__role">Admin</span>' : ''}
+            <span class="reply__time">${formatDate(r.created_at)}</span>
+          </div>
+          <div class="reply__message">${escapeHtml(r.message)}</div>
+        </div>
+      </div>`;
+  }
+
+  function appendReply(r) {
+    const list = document.getElementById('repliesList');
+    if (!list) return;
+    // Remove empty state if present
+    const empty = list.querySelector('.empty-state');
+    if (empty) empty.remove();
+    list.insertAdjacentHTML('beforeend', renderReplyHtml(r));
+    list.lastElementChild.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  async function handleReply(e) {
+    e.preventDefault();
+    const message = document.getElementById('replyMessage').value.trim();
+    const btn = document.getElementById('replyBtn');
+    clearError('replyError');
+    if (!message) { showError('replyError', 'Message cannot be empty'); return; }
+
+    btn.disabled = true;
+    btn.textContent = 'Sending…';
+
+    try {
+      await postReply({ ticketId, authorId: currentUser.id, message, isAdminReply: false });
+      document.getElementById('replyMessage').value = '';
+      showToast('Reply sent', 'success');
+    } catch (err) {
+      showError('replyError', err.message || 'Failed to send reply');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Send Reply';
+    }
+  }
+
+  // Hamburger
+  document.getElementById('hamburger').addEventListener('click', () => {
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('sidebarOverlay').classList.toggle('active');
+  });
+  document.getElementById('sidebarOverlay').addEventListener('click', () => {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebarOverlay').classList.remove('active');
+  });
+
+  document.getElementById('logoutBtn').addEventListener('click', logout);
+  init();
+</script>
+</body>
+</html>

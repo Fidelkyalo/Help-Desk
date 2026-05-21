@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Dashboard - Help Desk</title>
+  <link rel="icon" type="image/png" href="Images/Logo.png" />
+  <link rel="shortcut icon" type="image/png" href="Images/Logo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/main.css" />
+  <link rel="stylesheet" href="css/dashboard.css" />
+  <link rel="stylesheet" href="css/tickets.css" />
+  <link rel="stylesheet" href="css/responsive.css" />
+  <script src="js/theme.js"></script>
+</head>
+<body>
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<div class="app">
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <a href="dashboard.html" class="sidebar__brand">
+      <div class="sidebar__brand-icon">
+        <img src="Images/Logo.png" alt="Help Desk Logo" />
+      </div>
+      <div>
+        <div class="sidebar__brand-name">Help Desk</div>
+        <div class="sidebar__brand-sub">Support Portal</div>
+      </div>
+    </a>
+
+    <nav class="sidebar__nav">
+      <div class="sidebar__section-label">Menu</div>
+      <a href="dashboard.html" class="sidebar__link active">
+        <span class="sidebar__link-icon">🏠</span> Dashboard
+      </a>
+      <a href="ticket-new.html" class="sidebar__link">
+        <span class="sidebar__link-icon">➕</span> Report Issue
+      </a>
+      <a href="settings.html" class="sidebar__link">
+        <span class="sidebar__link-icon">⚙️</span> Settings
+      </a>
+    </nav>
+
+    <div class="sidebar__footer">
+      <div class="sidebar__user">
+        <div class="sidebar__avatar" id="userAvatar">?</div>
+        <div class="sidebar__user-info">
+          <div class="sidebar__user-name" id="userName">Loading…</div>
+          <div class="sidebar__user-role" id="userRole">Member</div>
+        </div>
+        <button class="sidebar__logout" id="logoutBtn" title="Logout">Log out</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <header class="header">
+      <div class="header__left">
+        <button class="hamburger" id="hamburger" aria-label="Toggle menu">☰</button>
+        <div>
+          <div class="header__title">Dashboard</div>
+          <div class="header__subtitle">Welcome back!</div>
+        </div>
+      </div>
+      <a href="ticket-new.html" class="btn btn--primary btn--sm">+ Report Issue</a>
+        <button class="theme-toggle" aria-label="Toggle theme">☀️</button>
+      </header>
+
+    <main class="content">
+      <!-- Stats -->
+      <div class="stats-grid" id="statsGrid">
+        <div class="stat-card">
+          <div class="stat-card__icon stat-card__icon--blue">🎫</div>
+          <div>
+            <div class="stat-card__value" id="statTotal">—</div>
+            <div class="stat-card__label">Total Tickets</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card__icon stat-card__icon--yellow">⏳</div>
+          <div>
+            <div class="stat-card__value" id="statPending">—</div>
+            <div class="stat-card__label">Pending</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card__icon stat-card__icon--green">✅</div>
+          <div>
+            <div class="stat-card__value" id="statResolved">—</div>
+            <div class="stat-card__label">Resolved</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tickets -->
+      <div class="page-header">
+        <div>
+          <div class="page-title">My Tickets</div>
+          <div class="page-subtitle">All your submitted support requests</div>
+        </div>
+      </div>
+
+      <!-- Table (desktop) -->
+      <div class="ticket-table-wrap">
+        <table class="ticket-table">
+          <thead>
+            <tr>
+              <th>Ticket No.</th>
+              <th>Subject</th>
+              <th>Category</th>
+              <th>Priority</th>
+              <th>Status</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody id="ticketTableBody">
+            <tr><td colspan="6"><div class="page-loader"><div class="spinner"></div></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Cards (mobile) -->
+      <div class="ticket-cards" id="ticketCards"></div>
+    </main>
+
+    <footer class="app-footer">
+      <div class="app-footer__copyright">
+        Ministry of Labour and Social Protection &middot; State Department for Social Protection and Senior Citizen Affairs &middot; GOK &middot; Help Desk Support. &copy; <span id="footerYear">2026</span> All rights reserved.
+      </div>
+      <div class="app-footer__brand">
+        <img src="Images/Logo.png" alt="Help Desk Logo" style="width: 16px; height: 16px; display: inline-block; vertical-align: middle; margin-right: 4px;" /> Help Desk Support
+      </div>
+    </footer>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/tickets.js"></script>
+<script src="js/realtime.js"></script>
+<script src="js/notifications.js"></script>
+<script src="js/demo-controls.js"></script>
+<script>
+  let currentUser = null;
+
+  async function init() {
+    const session = await requireCustomer();
+    if (!session) return;
+    currentUser = session.user;
+
+    // Load profile
+    const profile = await getCurrentProfile();
+    if (profile) {
+      document.getElementById('userName').textContent = profile.full_name || 'User';
+      document.getElementById('userAvatar').textContent = (profile.full_name || 'U')[0].toUpperCase();
+    } else if (currentUser && currentUser.email) {
+      const fallbackName = currentUser.email.split('@')[0];
+      document.getElementById('userName').textContent = fallbackName;
+      document.getElementById('userAvatar').textContent = fallbackName[0].toUpperCase();
+      if(document.getElementById('userRole')) {
+        document.getElementById('userRole').textContent = fallbackName.toLowerCase().includes('admin') ? 'Admin' : 'Member';
+      }
+    }
+    if (profile) {
+      if(document.getElementById('userRole')) {
+        document.getElementById('userRole').textContent = profile.role === 'admin' ? 'Admin' : 'Member';
+      }
+    }
+
+    await loadStats();
+    await loadTickets();
+
+    // Realtime updates
+    subscribeToMyTickets(currentUser.id, async (payload) => {
+      await loadStats();
+      await loadTickets();
+
+      if (payload && payload.eventType === 'UPDATE') {
+        const oldT = payload.old;
+        const newT = payload.new;
+        if (newT && newT.status === 'Resolved' && (!oldT || oldT.status !== 'Resolved')) {
+          // Toast resolution alert
+          showToast(`✅ Your ticket ${formatTicketNumber(newT.ticket_number, newT.id)} has been resolved!`, 'success');
+
+          const userEmail = profile?.email || currentUser?.email || 'member@example.com';
+          const userPhone = profile?.phone || '+123456789';
+          const userName = profile?.full_name || 'Member';
+
+          notifyTicketResolved({
+            ticket: newT,
+            userEmail: userEmail,
+            userPhone: userPhone,
+            userName: userName
+          }).catch(err => console.error('Realtime resolution notification error:', err));
+        }
+      }
+    });
+  }
+
+  async function loadStats() {
+    try {
+      const stats = await fetchUserStats(currentUser.id);
+      document.getElementById('statTotal').textContent   = stats.total;
+      document.getElementById('statPending').textContent = stats.pending;
+      document.getElementById('statResolved').textContent = stats.resolved;
+    } catch (e) { console.error(e); }
+  }
+
+  async function loadTickets() {
+    try {
+      const tickets = await fetchMyTickets(currentUser.id);
+      renderTable(tickets);
+      renderCards(tickets);
+    } catch (e) {
+      document.getElementById('ticketTableBody').innerHTML =
+        `<tr><td colspan="6" style="text-align:center;color:var(--danger)">Failed to load tickets.</td></tr>`;
+    }
+  }
+
+  function renderTable(tickets) {
+    const tbody = document.getElementById('ticketTableBody');
+    if (!tickets.length) {
+      tbody.innerHTML = `<tr><td colspan="6">
+        <div class="empty-state">
+          <div class="empty-state__icon">🎫</div>
+          <div class="empty-state__title">No tickets yet</div>
+          <p><a href="ticket-new.html">Submit your first request</a></p>
+        </div></td></tr>`;
+      return;
+    }
+    tbody.innerHTML = tickets.map(t => `
+      <tr>
+        <td class="text-muted text-sm">${formatTicketNumber(t.ticket_number, t.id)}</td>
+        <td class="ticket-table__subject">
+          <a href="ticket-detail.html?id=${t.id}" onclick="event.preventDefault(); navigateTo('ticket-detail.html', '${t.id}');" class="ticket-table__link">
+            <span class="ticket-table__subject-text">${escapeHtml(t.subject)}</span>
+          </a>
+          <div class="ticket-table__meta">${escapeHtml(t.category)}</div>
+        </td>
+        <td>${escapeHtml(t.category)}</td>
+        <td>${priorityBadge(t.priority)}</td>
+        <td>${statusBadge(t.status)}</td>
+        <td class="text-sm text-muted">${formatDate(t.created_at)}</td>
+      </tr>`).join('');
+  }
+
+  function renderCards(tickets) {
+    const container = document.getElementById('ticketCards');
+    if (!tickets.length) {
+      container.innerHTML = `<div class="empty-state">
+        <div class="empty-state__icon">🎫</div>
+        <div class="empty-state__title">No tickets yet</div>
+        <p><a href="ticket-new.html">Submit your first request</a></p>
+      </div>`;
+      return;
+    }
+    container.innerHTML = tickets.map(t => `
+      <a href="ticket-detail.html?id=${t.id}" onclick="event.preventDefault(); navigateTo('ticket-detail.html', '${t.id}');" class="ticket-card">
+        <div class="ticket-card__header">
+          <div class="ticket-card__subject">${escapeHtml(t.subject)}</div>
+          ${statusBadge(t.status)}
+        </div>
+        <div class="ticket-card__meta">${formatTicketNumber(t.ticket_number, t.id)} · ${escapeHtml(t.category)}</div>
+        <div class="ticket-card__footer">
+          ${priorityBadge(t.priority)}
+          <span class="text-xs text-muted">${formatDate(t.created_at)}</span>
+        </div>
+      </a>`).join('');
+  }
+
+  // Hamburger
+  document.getElementById('hamburger').addEventListener('click', () => {
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('sidebarOverlay').classList.toggle('active');
+  });
+  document.getElementById('sidebarOverlay').addEventListener('click', () => {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebarOverlay').classList.remove('active');
+  });
+
+  // Logout
+  document.getElementById('logoutBtn').addEventListener('click', logout);
+
+  init();
+</script>
+</body>
+</html>

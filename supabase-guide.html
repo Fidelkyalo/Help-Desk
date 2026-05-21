@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Supabase Integration Hub — Help Desk</title>
+  <link rel="icon" type="image/png" href="Images/Logo.png" />
+  <link rel="shortcut icon" type="image/png" href="Images/Logo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/main.css" />
+  <link rel="stylesheet" href="css/guide.css" />
+  <script src="js/theme.js"></script>
+</head>
+<body>
+  <!-- Theme toggle (floating, top-right) -->
+  <button class="theme-toggle" style="position:fixed;top:1.25rem;right:1.25rem;z-index:999;" aria-label="Toggle theme">☀️</button>
+
+  <!-- Decorative Orbs -->
+  <div style="position: fixed; top: -100px; right: -100px; width: 400px; height: 400px; border-radius: 50%; background: rgba(16, 185, 129, 0.15); filter: blur(140px); z-index: -1; pointer-events: none;"></div>
+  <div style="position: fixed; bottom: -100px; left: -100px; width: 400px; height: 400px; border-radius: 50%; background: rgba(99, 102, 241, 0.15); filter: blur(140px); z-index: -1; pointer-events: none;"></div>
+
+  <div class="guide-container">
+    
+    <!-- Header -->
+    <header class="guide-header">
+      <div class="guide-header__logo">⚡</div>
+      <h1 class="guide-title">Supabase Integration Hub</h1>
+      <p class="guide-subtitle">Connect your cloud database, install the schema, and migrate simulated data in real time</p>
+    </header>
+
+    <!-- Step 1: Create Project -->
+    <div class="step-card">
+      <div class="step-number">01</div>
+      <div class="step-title">
+        <span class="step-title__icon">🌐</span>
+        <h3>Create a Free Supabase Project</h3>
+      </div>
+      <p class="step-desc">
+        If you haven't yet, head over to <a href="https://supabase.com" target="_blank" style="color: #3b82f6; text-decoration: underline;">supabase.com</a>, log in with your GitHub account, and click <strong>New Project</strong>. Choose a project name, secure database password, and launch your dedicated cloud PostgreSQL instance (takes 1-2 minutes to provision).
+      </p>
+    </div>
+
+    <!-- Step 2: Install SQL Schema -->
+    <div class="step-card">
+      <div class="step-number">02</div>
+      <div class="step-title">
+        <span class="step-title__icon">💾</span>
+        <h3>Install the Database Schema</h3>
+      </div>
+      <p class="step-desc">
+        Open your project inside the Supabase Console, navigate to the <strong>SQL Editor</strong> on the left-hand menu, click <strong>New Query</strong>, paste the full database structure below, and click <strong>Run</strong>. This sets up your tables, auto-increment ticket sequences, and automatic row triggers!
+      </p>
+      
+      <div class="code-container">
+        <div class="code-header">
+          <span class="code-title">supabase-schema.sql</span>
+          <button class="copy-btn" id="copy-schema-btn">
+            <span>📋</span> Copy Schema
+          </button>
+        </div>
+        <pre class="code-block" id="sql-schema-pre">-- Loading database structure...</pre>
+      </div>
+    </div>
+
+    <!-- Step 3: Configure API Credentials -->
+    <div class="step-card">
+      <div class="step-number">03</div>
+      <div class="step-title">
+        <span class="step-title__icon">🔑</span>
+        <h3>Connect Your Web Application</h3>
+      </div>
+      <p class="step-desc">
+        Inside your Supabase dashboard, go to <strong>Project Settings</strong> (the gear icon) &gt; <strong>API</strong>. Copy your <strong>Project URL</strong> and your <strong>anon public key</strong>.
+      </p>
+      
+      <div class="console-box" style="margin-top: 1rem;">
+        <div class="demo-section-title">Configure Credentials for This Browser Session</div>
+        <form id="guide-credentials-form" style="display: flex; flex-direction: column; gap: 0.75rem; margin-top: 0.5rem;" onsubmit="return false;">
+          <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+            <label style="font-size: 0.75rem; color: var(--text-muted);">Project URL</label>
+            <input type="text" class="realtime-test-input" id="guide-db-url" placeholder="https://your-project-id.supabase.co" />
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+            <label style="font-size: 0.75rem; color: var(--text-muted);">Anon Public Key</label>
+            <input type="password" class="realtime-test-input" id="guide-db-key" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." />
+          </div>
+          <div style="display: flex; gap: 0.5rem; margin-top: 0.25rem;">
+            <button class="console-btn" id="guide-apply-btn" style="flex: 1; justify-content: center; padding: 0.6rem;">
+              Apply Live Connection
+            </button>
+            <button class="console-btn" id="guide-clear-btn" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: #f43f5e; box-shadow: none; padding: 0.6rem;">
+              Revert to Sandbox
+            </button>
+          </div>
+        </form>
+        <p style="font-size: 0.75rem; color: var(--text-light); margin-top: 0.75rem;">
+          💡 <strong>Pro Tip:</strong> To permanently configure these credentials for all users without needing local browser settings, open <span style="font-family: monospace; color: var(--text-muted);">js/supabase-client.js</span> and update <span style="font-family: monospace; color: var(--primary);">LIVE_SUPABASE_URL</span> and <span style="font-family: monospace; color: var(--primary);">LIVE_SUPABASE_ANON_KEY</span> at the top of the file!
+        </p>
+      </div>
+    </div>
+
+    <!-- Step 4: Real-time Cloud Migrator & Seeder -->
+    <div class="step-card" id="migration-step-card">
+      <div class="step-number">04</div>
+      <div class="step-title">
+        <span class="step-title__icon">📤</span>
+        <h3>Cloud Data Migration Console</h3>
+      </div>
+      <p class="step-desc">
+        Migrate your simulated offline data (mock tickets, conversation replies, and profiles) straight to your cloud Supabase project! This automates mapping user session IDs, builds authentic tables, and moves data to the cloud instantly.
+      </p>
+
+      <div class="console-box">
+        <div class="console-status">
+          <span class="console-status__label">Cloud Sync Connection Status</span>
+          <span id="guide-connection-status"><span style="color: #64748b;">Loading status...</span></span>
+        </div>
+
+        <div class="migrator-stats">
+          <div class="migrator-stat-card">
+            <div class="migrator-stat-val" id="stat-mock-tickets">0</div>
+            <div class="migrator-stat-lbl">Local Tickets</div>
+          </div>
+          <div class="migrator-stat-card">
+            <div class="migrator-stat-val" id="stat-mock-replies">0</div>
+            <div class="migrator-stat-lbl">Local Replies</div>
+          </div>
+          <div class="migrator-stat-card">
+            <div class="migrator-stat-val" id="stat-live-user">None</div>
+            <div class="migrator-stat-lbl">Active Live User</div>
+          </div>
+        </div>
+
+        <div style="text-align: center;">
+          <button class="console-btn" id="start-migration-btn" disabled>
+            🚀 Begin Cloud Migration
+          </button>
+        </div>
+
+        <div class="migration-logs" id="migration-logs-box">
+          <div class="migration-log-entry migration-log-entry--info">[System]: Console online. Waiting for connection...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 5: Test Real-time Broadcasts -->
+    <div class="step-card" id="realtime-step-card">
+      <div class="step-number">05</div>
+      <div class="step-title">
+        <span class="step-title__icon">📡</span>
+        <h3>Real-time Websocket Test Console</h3>
+      </div>
+      <p class="step-desc">
+        Pings the live database real-time channel subscription. Type a message below to broadcast a raw websocket packet over your Supabase project channel to verify live communication is operational!
+      </p>
+
+      <div class="console-box">
+        <div class="realtime-test-console">
+          <input type="text" class="realtime-test-input" id="rt-test-message" placeholder="Type a test broadcast payload (e.g. WiFi issue update)..." disabled />
+          <button class="console-btn" id="rt-test-send-btn" disabled>
+            Broadcasting 📡
+          </button>
+        </div>
+        <div class="migration-logs" id="rt-logs-box" style="height: 100px; margin-top: 1rem;">
+          <div class="migration-log-entry">[Websocket]: Waiting for live cloud connection...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer Nav -->
+    <div class="footer-nav">
+      <a href="index.html" class="btn btn--secondary btn--sm">🏠 Go to Portal Login</a>
+      <span style="font-size: 0.8rem; color: var(--text-light); display: flex; align-items: center; gap: 6px;">
+        <img src="Images/Logo.png" alt="Logo" style="width: 14px; height: 14px;" />
+        &copy; <span id="footerYear"></span> Ministry of Labour and Social Protection &middot; State Department for Social Protection and Senior Citizen Affairs &middot; GOK &middot; Help Desk Support. All rights reserved.
+      </span>
+      <script>
+        document.getElementById('footerYear').textContent = new Date().getFullYear();
+      </script>
+    </div>
+
+  </div>
+
+  <!-- Include Core Dependencies -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/guide.js"></script>
+</body>
+</html>
+

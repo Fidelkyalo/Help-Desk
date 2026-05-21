@@ -1,0 +1,21 @@
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/settings.json
+.vscode/*.log
+*.suo
+*.user
+
+# Logs
+*.log
+
+# Local env / secrets
+.env
+.env.local
+*.env
+
+# Node (if ever added)
+node_modules/

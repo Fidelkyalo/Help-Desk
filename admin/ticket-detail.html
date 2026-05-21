@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Resolve Ticket - Help Desk</title>
+  <link rel="icon" type="image/png" href="../Images/Logo.png" />
+  <link rel="shortcut icon" type="image/png" href="../Images/Logo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/main.css" />
+  <link rel="stylesheet" href="../css/dashboard.css" />
+  <link rel="stylesheet" href="../css/tickets.css" />
+  <link rel="stylesheet" href="../css/responsive.css" />
+  <script src="../js/theme.js"></script>
+</head>
+<body>
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<div class="app">
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <a href="dashboard.html" class="sidebar__brand">
+      <div class="sidebar__brand-icon">
+        <img src="../Images/Logo.png" alt="Help Desk Logo" />
+      </div>
+      <div>
+        <div class="sidebar__brand-name">Help Desk</div>
+        <div class="sidebar__brand-sub">Admin Portal</div>
+      </div>
+    </a>
+
+    <nav class="sidebar__nav">
+      <div class="sidebar__section-label">Menu</div>
+      <a href="dashboard.html" class="sidebar__link active">
+        <span class="sidebar__link-icon">📊</span> Overview
+      </a>
+      <a href="customers.html" class="sidebar__link">
+        <span class="sidebar__link-icon">👥</span> Customers
+      </a>
+      <a href="settings.html" class="sidebar__link">
+        <span class="sidebar__link-icon">⚙️</span> Settings
+      </a>
+    </nav>
+
+    <div class="sidebar__footer">
+      <div class="sidebar__user">
+        <div class="sidebar__avatar" id="userAvatar">A</div>
+        <div class="sidebar__user-info">
+          <div class="sidebar__user-name" id="userName">Admin Support</div>
+          <div class="sidebar__user-role">Administrator</div>
+        </div>
+        <button class="sidebar__logout" id="logoutBtn" title="Logout">Log out</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="main">
+    <header class="header">
+      <div class="header__left">
+        <button class="hamburger" id="hamburger" aria-label="Toggle menu">☰</button>
+        <div>
+          <div class="header__title">Resolve Request</div>
+          <div class="header__subtitle" id="headerTicketNum">Loading…</div>
+        </div>
+      </div>
+      <a href="dashboard.html" class="btn btn--secondary btn--sm">← Back Overview</a>
+        <button class="theme-toggle" aria-label="Toggle theme">☀️</button>
+      </header>
+
+    <main class="content">
+      <div class="ticket-detail" id="ticketDetail">
+        <div class="page-loader"><div class="spinner"></div></div>
+      </div>
+    </main>
+
+    <footer class="app-footer">
+      <div class="app-footer__copyright">
+        Ministry of Labour and Social Protection &middot; State Department for Social Protection and Senior Citizen Affairs &middot; GOK &middot; Help Desk Support. &copy; <span id="footerYear">2026</span> All rights reserved.
+      </div>
+      <div class="app-footer__brand">
+        <img src="../Images/Logo.png" alt="Help Desk Logo" style="width: 16px; height: 16px; display: inline-block; vertical-align: middle; margin-right: 4px;" /> Help Desk Support
+      </div>
+    </footer>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/supabase-client.js"></script>
+<script src="../js/utils.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/tickets.js"></script>
+<script src="../js/admin.js"></script>
+<script src="../js/realtime.js"></script>
+<script src="../js/notifications.js"></script>
+<script src="../js/demo-controls.js"></script>
+<script>
+  let currentUser = null;
+  let currentProfile = null;
+  let ticketId = null;
+  let ticket = null;
+
+  async function init() {
+    const session = await requireAdmin();
+    if (!session) return;
+    currentUser = session.user;
+    currentProfile = await getCurrentProfile();
+
+    if (currentProfile) {
+      document.getElementById('userName').textContent = currentProfile.full_name || 'Admin';
+      document.getElementById('userAvatar').textContent = (currentProfile.full_name || 'A')[0].toUpperCase();
+    } else if (currentUser && currentUser.email) {
+      const fallbackName = currentUser.email.split('@')[0];
+      document.getElementById('userName').textContent = fallbackName;
+      document.getElementById('userAvatar').textContent = fallbackName[0].toUpperCase();
+    }
+    if (currentProfile) {
+    }
+
+    ticketId = getParam('id');
+    console.log('Admin Ticket Detail Init — Ticket ID:', ticketId);
+    if (!ticketId) {
+      console.warn('Redirecting: No ticket ID found in URL search parameters:', window.location.search);
+      document.getElementById('ticketDetail').innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state__icon">⚠️</div>
+          <div class="empty-state__title">No Ticket Selected</div>
+          <p>No valid ticket ID was found in the URL.</p>
+          <div style="font-size: 0.8rem; background: rgba(0,0,0,0.2); padding: 0.75rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); margin: 0.75rem 0; text-align: left; font-family: monospace; color: var(--text-muted); word-break: break-all;">
+            <strong>Detected URL:</strong><br/>
+            ${escapeHtml(window.location.href)}
+          </div>
+          <p>Redirecting to dashboard overview in 5 seconds...</p>
+        </div>`;
+      setTimeout(() => {
+        window.location.href = 'dashboard.html';
+      }, 5000);
+      return;
+    }
+
+    await loadTicket();
+
+    // Subscribe to incoming replies
+    subscribeToReplies(ticketId, (newReply) => {
+      appendReply(newReply);
+
+      // If it's a customer reply, show a toast notification
+      if (!newReply.is_admin_reply) {
+        showToast('💬 Customer posted a new reply!', 'info');
+      }
+    });
+
+    // Realtime single ticket updates (status and metadata)
+    subscribeToSingleTicket(ticketId, (updatedTicket) => {
+      const oldStatus = ticket ? ticket.status : null;
+      if (updatedTicket.status !== oldStatus) {
+        showToast(`ℹ️ Ticket status updated by customer to: ${updatedTicket.status}`, 'info');
+      }
+      loadTicket();
+    });
+  }
+
+  async function loadTicket() {
+    try {
+      // Fetch ticket by id
+      const { data, error } = await supabaseClient
+        .from('tickets')
+        .select('*, profiles(full_name, phone, email)')
+        .eq('id', ticketId)
+        .single();
+      
+      if (error) throw error;
+      ticket = data;
+
+      const replies = await fetchReplies(ticketId);
+      renderTicket(ticket, replies);
+      document.getElementById('headerTicketNum').textContent = formatTicketNumber(ticket.ticket_number, ticketId);
+    } catch (e) {
+      console.error(e);
+      document.getElementById('ticketDetail').innerHTML =
+        `<div class="empty-state"><div class="empty-state__icon">⚠️</div><div class="empty-state__title">Ticket not found</div><p>The ticket ID might be invalid.</p></div>`;
+    }
+  }
+
+  function renderTicket(t, replies) {
+    const detailEl = document.getElementById('ticketDetail');
+    detailEl.innerHTML = `
+      <!-- Ticket Header Info -->
+      <div class="ticket-detail__header">
+        <div class="ticket-detail__number">Ticket ${formatTicketNumber(t.ticket_number, t.id)}</div>
+        <div class="ticket-detail__title">${escapeHtml(t.subject)}</div>
+        
+        <div style="margin-top: .5rem; margin-bottom: 1.25rem; font-size: 0.85rem; color: var(--text-muted)">
+          <strong>Submitted By:</strong> ${escapeHtml(t.profiles?.full_name || 'Unknown')} (${escapeHtml(t.profiles?.email || 'No email')}) · ${escapeHtml(t.profiles?.phone || 'No phone')}
+        </div>
+
+        <div class="ticket-detail__meta">
+          ${statusBadge(t.status)}
+          ${priorityBadge(t.priority)}
+          <span class="ticket-detail__meta-item">📁 ${escapeHtml(t.category)}</span>
+          <span class="ticket-detail__meta-item">🕐 ${formatDate(t.created_at)}</span>
+        </div>
+      </div>
+
+      <!-- Status Manager Widget (Admins only) -->
+      <div class="status-update">
+        <div class="status-update__title">⚙️ Ticket Workflow Control</div>
+        <div class="status-update__row">
+          <span style="font-size: 0.9rem; color: var(--text-muted)">Change workflow status:</span>
+          <select class="form-select" id="updateStatusSelect" style="width: auto; min-width: 140px; padding: .375rem .75rem;">
+            <option value="Pending" ${t.status === 'Pending' ? 'selected' : ''}>Pending</option>
+            <option value="Resolved" ${t.status === 'Resolved' ? 'selected' : ''}>Resolved</option>
+            <option value="Customer Marked as Resolved" ${t.status === 'Customer Marked as Resolved' ? 'selected' : ''}>Customer Marked as Resolved</option>
+          </select>
+          <button class="btn btn--primary btn--sm" id="updateStatusBtn">Apply Workflow Status</button>
+        </div>
+      </div>
+
+      <!-- Ticket Core Description -->
+      <div class="ticket-detail__description">
+        <h3 style="margin-bottom:.75rem;font-size:.95rem; font-weight:700;">Original Support Request</h3>
+        <p>${escapeHtml(t.description)}</p>
+      </div>
+
+      <!-- Replies Feed -->
+      <div class="replies">
+        <div class="replies__header">💬 Support Thread (${replies.length})</div>
+        <div class="replies__list" id="repliesList">
+          ${replies.length ? replies.map(renderReplyHtml).join('') : '<div class="empty-state" style="padding:2rem"><p>No correspondence in this thread yet.</p></div>'}
+        </div>
+      </div>
+
+      <!-- Admin Response Box (only if not locked/resolved, or allow response in any state) -->
+      <div class="reply-form">
+        <div class="reply-form__title">Post Response to Member</div>
+        <form id="replyForm" novalidate>
+          <div class="form-group">
+            <textarea class="form-textarea" id="replyMessage" placeholder="Draft your professional response here..." style="min-height:120px" required></textarea>
+            <span class="form-error" id="replyError"></span>
+          </div>
+          <button type="submit" class="btn btn--primary" id="replyBtn">Post & Notify Customer</button>
+        </form>
+      </div>
+    `;
+
+    // Bind event handlers
+    document.getElementById('updateStatusBtn').addEventListener('click', handleStatusUpdate);
+    document.getElementById('replyForm').addEventListener('submit', handleReply);
+  }
+
+  function renderReplyHtml(r) {
+    const isAdmin = r.is_admin_reply;
+    const name = r.profiles?.full_name || (isAdmin ? 'Admin' : 'Member');
+    const initial = name[0].toUpperCase();
+    return `
+      <div class="reply ${isAdmin ? 'reply--admin' : ''}">
+        <div class="reply__avatar ${isAdmin ? 'reply__avatar--admin' : 'reply__avatar--user'}">${initial}</div>
+        <div class="reply__body">
+          <div class="reply__meta">
+            <span class="reply__author">${escapeHtml(name)}</span>
+            ${isAdmin ? '<span class="reply__role">Admin</span>' : ''}
+            <span class="reply__time">${formatDate(r.created_at)}</span>
+          </div>
+          <div class="reply__message">${escapeHtml(r.message)}</div>
+        </div>
+      </div>`;
+  }
+
+  function appendReply(r) {
+    const list = document.getElementById('repliesList');
+    if (!list) return;
+    const empty = list.querySelector('.empty-state');
+    if (empty) empty.remove();
+    list.insertAdjacentHTML('beforeend', renderReplyHtml(r));
+    list.lastElementChild.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  async function handleStatusUpdate() {
+    const statusSelect = document.getElementById('updateStatusSelect');
+    const updateBtn = document.getElementById('updateStatusBtn');
+    const newStatus = statusSelect.value;
+
+    updateBtn.disabled = true;
+    updateBtn.textContent = 'Updating…';
+
+    try {
+      const updatedTicket = await updateTicketStatus(ticketId, newStatus);
+      showToast(`Ticket status updated to ${newStatus}`, 'success');
+      
+      // Update local cache
+      ticket.status = newStatus;
+      
+      // Re-trigger notifications if status was updated to Resolved (runs in background to prevent UI freeze)
+      if (newStatus === 'Resolved' && ticket.profiles) {
+        notifyTicketResolved({
+          ticket: updatedTicket,
+          userEmail: ticket.profiles.email || 'user@example.com',
+          userPhone: ticket.profiles.phone || '+123456789',
+          userName: ticket.profiles.full_name || 'Member'
+        }).catch(err => console.error('Notification error:', err));
+      }
+
+      setTimeout(loadTicket, 1000);
+    } catch (e) {
+      showToast(e.message || 'Failed to update status', 'error');
+      updateBtn.disabled = false;
+      updateBtn.textContent = 'Apply Workflow Status';
+    }
+  }
+
+  async function handleReply(e) {
+    e.preventDefault();
+    const message = document.getElementById('replyMessage').value.trim();
+    const replyBtn = document.getElementById('replyBtn');
+    clearError('replyError');
+
+    if (!message) { showError('replyError', 'Response message cannot be empty'); return; }
+
+    replyBtn.disabled = true;
+    replyBtn.textContent = 'Posting…';
+
+    try {
+      const reply = await postAdminReply({ ticketId, authorId: currentUser.id, message });
+      document.getElementById('replyMessage').value = '';
+      showToast('Response successfully posted', 'success');
+
+      // Send notifications to the user about new response (runs in background to prevent UI freeze)
+      if (ticket.profiles) {
+        notifyAdminReplied({
+          ticket,
+          userEmail: ticket.profiles.email || 'user@example.com',
+          userName: ticket.profiles.full_name || 'Member'
+        }).catch(err => console.error('Notification error:', err));
+      }
+
+      // Automatically reload replies or rely on realtime channel
+      await loadTicket();
+    } catch (err) {
+      showError('replyError', err.message || 'Failed to post reply');
+    } finally {
+      replyBtn.disabled = false;
+      replyBtn.textContent = 'Post & Notify Customer';
+    }
+  }
+
+  // Hamburger
+  document.getElementById('hamburger').addEventListener('click', () => {
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('sidebarOverlay').classList.toggle('active');
+  });
+  document.getElementById('sidebarOverlay').addEventListener('click', () => {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebarOverlay').classList.remove('active');
+  });
+
+  // Logout
+  document.getElementById('logoutBtn').addEventListener('click', logout);
+
+  init();
+</script>
+</body>
+</html>

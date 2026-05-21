@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Report Issue - Help Desk</title>
+  <link rel="icon" type="image/png" href="Images/Logo.png" />
+  <link rel="shortcut icon" type="image/png" href="Images/Logo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/main.css" />
+  <link rel="stylesheet" href="css/dashboard.css" />
+  <link rel="stylesheet" href="css/tickets.css" />
+  <link rel="stylesheet" href="css/responsive.css" />
+  <script src="js/theme.js"></script>
+</head>
+<body>
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<div class="app">
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <a href="dashboard.html" class="sidebar__brand">
+      <div class="sidebar__brand-icon">
+        <img src="Images/Logo.png" alt="Help Desk Logo" />
+      </div>
+      <div>
+        <div class="sidebar__brand-name">Help Desk</div>
+        <div class="sidebar__brand-sub">Support Portal</div>
+      </div>
+    </a>
+    <nav class="sidebar__nav">
+      <div class="sidebar__section-label">Menu</div>
+      <a href="dashboard.html" class="sidebar__link">
+        <span class="sidebar__link-icon">🏠</span> Dashboard
+      </a>
+      <a href="ticket-new.html" class="sidebar__link active">
+        <span class="sidebar__link-icon">➕</span> Report Issue
+      </a>
+      <a href="settings.html" class="sidebar__link">
+        <span class="sidebar__link-icon">⚙️</span> Settings
+      </a>
+    </nav>
+    <div class="sidebar__footer">
+      <div class="sidebar__user">
+        <div class="sidebar__avatar" id="userAvatar">?</div>
+        <div class="sidebar__user-info">
+          <div class="sidebar__user-name" id="userName">Loading…</div>
+          <div class="sidebar__user-role">Member</div>
+        </div>
+        <button class="sidebar__logout" id="logoutBtn" title="Logout">Log out</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <header class="header">
+      <div class="header__left">
+        <button class="hamburger" id="hamburger" aria-label="Toggle menu">☰</button>
+        <div>
+          <div class="header__title">Report Issue</div>
+          <div class="header__subtitle">Submit a support request</div>
+        </div>
+      </div>
+      <a href="dashboard.html" class="btn btn--secondary btn--sm">← Back</a>
+        <button class="theme-toggle" aria-label="Toggle theme">☀️</button>
+      </header>
+
+    <main class="content">
+      <div style="max-width:680px">
+        <div class="card">
+          <div class="card__header">
+            <span class="card__title">Submit a Support Request</span>
+          </div>
+
+          <div id="formAlert" class="auth-alert auth-alert--error" style="margin-bottom:1rem"></div>
+
+          <form id="ticketForm" novalidate>
+            <div class="form-group">
+              <label class="form-label" for="subject">Subject / Title *</label>
+              <input class="form-input" type="text" id="subject" placeholder="Brief description of your issue" required />
+              <span class="form-error" id="subjectError"></span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="category">Category *</label>
+              <select class="form-select" id="category" required>
+                <option value="">Select a category</option>
+                <option value="Technical">Technical</option>
+                <option value="Billing">Billing</option>
+                <option value="General">General</option>
+                <option value="Other">Other</option>
+              </select>
+              <span class="form-error" id="categoryError"></span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="priority">Priority *</label>
+              <select class="form-select" id="priority" required>
+                <option value="">Select priority</option>
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
+              </select>
+              <span class="form-error" id="priorityError"></span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="description">Description *</label>
+              <textarea class="form-textarea" id="description" placeholder="Describe your issue in detail…" required></textarea>
+              <span class="form-error" id="descriptionError"></span>
+            </div>
+
+            <div style="display:flex;gap:.75rem;flex-wrap:wrap">
+              <button type="submit" class="btn btn--primary" id="submitBtn">Submit Ticket</button>
+              <a href="dashboard.html" class="btn btn--secondary">Cancel</a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </main>
+
+    <footer class="app-footer">
+      <div class="app-footer__copyright">
+        Ministry of Labour and Social Protection &middot; State Department for Social Protection and Senior Citizen Affairs &middot; GOK &middot; Help Desk Support. &copy; <span id="footerYear">2026</span> All rights reserved.
+      </div>
+      <div class="app-footer__brand">
+        <img src="Images/Logo.png" alt="Help Desk Logo" style="width: 16px; height: 16px; display: inline-block; vertical-align: middle; margin-right: 4px;" /> Help Desk Support
+      </div>
+    </footer>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/tickets.js"></script>
+<script src="js/notifications.js"></script>
+<script src="js/demo-controls.js"></script>
+<script>
+  let currentUser = null;
+  let currentProfile = null;
+
+  async function init() {
+    // Dynamic footer year
+    document.getElementById('footerYear').textContent = new Date().getFullYear();
+
+    const session = await requireCustomer();
+    if (!session) return;
+    currentUser = session.user;
+    currentProfile = await getCurrentProfile();
+    if (currentProfile) {
+      document.getElementById('userName').textContent = currentProfile.full_name || 'User';
+      document.getElementById('userAvatar').textContent = (currentProfile.full_name || 'U')[0].toUpperCase();
+    } else if (currentUser && currentUser.email) {
+      const fallbackName = currentUser.email.split('@')[0];
+      document.getElementById('userName').textContent = fallbackName;
+      document.getElementById('userAvatar').textContent = fallbackName[0].toUpperCase();
+    }
+    if (currentProfile) {
+    }
+  }
+
+  document.getElementById('ticketForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const subject     = document.getElementById('subject').value.trim();
+    const category    = document.getElementById('category').value;
+    const priority    = document.getElementById('priority').value;
+    const description = document.getElementById('description').value.trim();
+    const alertEl     = document.getElementById('formAlert');
+    const btn         = document.getElementById('submitBtn');
+
+    ['subjectError','categoryError','priorityError','descriptionError'].forEach(clearError);
+    alertEl.style.display = 'none';
+
+    let valid = true;
+    if (!subject)     { showError('subjectError', 'Subject is required'); valid = false; }
+    if (!category)    { showError('categoryError', 'Please select a category'); valid = false; }
+    if (!priority)    { showError('priorityError', 'Please select a priority'); valid = false; }
+    if (!description) { showError('descriptionError', 'Description is required'); valid = false; }
+    if (!valid) return;
+
+    btn.disabled = true;
+    btn.textContent = 'Submitting…';
+
+    try {
+      const ticket = await submitTicket({
+        userId: currentUser.id,
+        subject, category, priority, description
+      });
+
+      // Send notifications
+      if (currentProfile) {
+        await notifyTicketSubmitted({
+          ticket,
+          userEmail: currentUser.email,
+          userPhone: currentProfile.phone,
+          userName: currentProfile.full_name
+        });
+      }
+
+      showToast('Ticket submitted successfully!', 'success');
+      setTimeout(() => navigateTo('ticket-detail.html', ticket.id), 1200);
+    } catch (err) {
+      alertEl.textContent = err.message || 'Failed to submit ticket. Please try again.';
+      alertEl.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Submit Ticket';
+    }
+  });
+
+  // Hamburger
+  document.getElementById('hamburger').addEventListener('click', () => {
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('sidebarOverlay').classList.toggle('active');
+  });
+  document.getElementById('sidebarOverlay').addEventListener('click', () => {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebarOverlay').classList.remove('active');
+  });
+
+  document.getElementById('logoutBtn').addEventListener('click', logout);
+  init();
+</script>
+</body>
+</html>

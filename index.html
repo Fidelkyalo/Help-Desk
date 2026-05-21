@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login - Help Desk</title>
+  <link rel="icon" type="image/png" href="Images/Logo.png" />
+  <link rel="shortcut icon" type="image/png" href="Images/Logo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/main.css" />
+  <link rel="stylesheet" href="css/auth.css" />
+  <script src="js/theme.js"></script>
+</head>
+<body class="auth-page">
+
+  <!-- Theme toggle (floating, top-right) -->
+  <button class="theme-toggle" style="position:fixed;top:1.25rem;right:1.25rem;z-index:999;" aria-label="Toggle theme">☀️</button>
+
+  <!-- State Department Brand Logo -->
+  <div class="auth-brand-logo">
+    <img src="Images/State%20Department.jpg" alt="United States Department of State Seal" />
+  </div>
+
+  <div class="auth-card">
+    <!-- Logo -->
+    <div class="auth-logo">
+      <div class="auth-logo__icon">
+        <img src="Images/Logo.png" alt="Help Desk Logo" />
+      </div>
+      <div class="auth-logo__text">Help Desk</div>
+    </div>
+
+    <h1 class="auth-title">Welcome back</h1>
+    <p class="auth-subtitle">Sign in to your account to continue</p>
+
+    <!-- Alert -->
+    <div id="alert" class="auth-alert auth-alert--error"></div>
+
+    <!-- Form -->
+    <form id="loginForm" class="auth-form" novalidate>
+      <div class="form-group">
+        <label class="form-label" for="email">Email address</label>
+        <input class="form-input" type="email" id="email" placeholder="you@example.com" required autocomplete="email" />
+        <span class="form-error" id="emailError"></span>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="password">Password</label>
+        <div class="password-wrapper">
+          <input class="form-input" type="password" id="password" placeholder="••••••••" required autocomplete="current-password" />
+          <button type="button" class="password-toggle" id="togglePassword" aria-label="Toggle password visibility">👁</button>
+        </div>
+        <span class="form-error" id="passwordError"></span>
+      </div>
+
+      <button type="submit" class="btn btn--primary btn--full" id="submitBtn">
+        Sign In
+      </button>
+    </form>
+
+    <div class="auth-footer">
+      Don't have an account? <a href="register.html">Create one</a>
+    </div>
+  </div>
+
+  <footer class="auth-page-footer">
+    Ministry of Labour and Social Protection &middot; State Department for Social Protection and Senior Citizen Affairs &middot; GOK &middot; Help Desk Support. &copy; <span id="footerYear">2026</span> All rights reserved.
+  </footer>
+
+  <!-- Supabase CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/demo-controls.js"></script>
+  <script>
+    // Redirect if already logged in
+    (async () => {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (session) await redirectByRole(session);
+    })();
+
+    // Toggle password visibility
+    document.getElementById('togglePassword').addEventListener('click', () => {
+      const pwd = document.getElementById('password');
+      pwd.type = pwd.type === 'password' ? 'text' : 'password';
+    });
+
+    // Form submit
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email    = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const alert    = document.getElementById('alert');
+      const btn      = document.getElementById('submitBtn');
+
+      // Clear errors
+      clearError('emailError');
+      clearError('passwordError');
+      alert.style.display = 'none';
+
+      // Validate
+      let valid = true;
+      if (!email) { showError('emailError', 'Email is required'); valid = false; }
+      if (!password) { showError('passwordError', 'Password is required'); valid = false; }
+      if (!valid) return;
+
+      btn.disabled = true;
+      btn.textContent = 'Signing in…';
+
+      try {
+        const result = await login(email, password);
+        const { session } = result;
+        await redirectByRole(session);
+      } catch (err) {
+        // Suspended account — show the overlay instead of a generic error
+        if (err.isSuspension && err.profile) {
+          btn.disabled = false;
+          btn.textContent = 'Sign In';
+          showSuspensionOverlay(err.profile);
+          return;
+        }
+        alert.textContent = err.message || 'Invalid email or password.';
+        alert.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Sign In';
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Register - Help Desk</title>
+  <link rel="icon" type="image/png" href="Images/Logo.png" />
+  <link rel="shortcut icon" type="image/png" href="Images/Logo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/main.css" />
+  <link rel="stylesheet" href="css/auth.css" />
+  <script src="js/theme.js"></script>
+</head>
+<body class="auth-page">
+
+  <!-- Theme toggle (floating, top-right) -->
+  <button class="theme-toggle" style="position:fixed;top:1.25rem;right:1.25rem;z-index:999;" aria-label="Toggle theme">☀️</button>
+
+  <!-- State Department Brand Logo -->
+  <div class="auth-brand-logo">
+    <img src="Images/State%20Department.jpg" alt="United States Department of State Seal" />
+  </div>
+
+  <div class="auth-card">
+    <!-- Logo -->
+    <div class="auth-logo">
+      <div class="auth-logo__icon">
+        <img src="Images/Logo.png" alt="Help Desk Logo" />
+      </div>
+      <div class="auth-logo__text">Help Desk</div>
+    </div>
+
+    <h1 class="auth-title">Create an account</h1>
+    <p class="auth-subtitle">Fill in your details to get started</p>
+
+    <!-- Alert -->
+    <div id="alert" class="auth-alert"></div>
+
+    <!-- Form -->
+    <form id="registerForm" class="auth-form" novalidate>
+      <div class="form-group">
+        <label class="form-label" for="fullName">Full name</label>
+        <input class="form-input" type="text" id="fullName" placeholder="John Doe" required autocomplete="name" />
+        <span class="form-error" id="nameError"></span>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="email">Email address</label>
+        <input class="form-input" type="email" id="email" placeholder="you@example.com" required autocomplete="email" />
+        <span class="form-error" id="emailError"></span>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="phone">Phone number <span class="text-muted text-sm">(for SMS & WhatsApp)</span></label>
+        <input class="form-input" type="tel" id="phone" placeholder="+1234567890" required autocomplete="tel" />
+        <span class="form-error" id="phoneError"></span>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="pfNumber">
+          PF Number <span class="text-muted text-sm">(optional)</span>
+        </label>
+        <input class="form-input" type="text" id="pfNumber" placeholder="e.g. PF123456" autocomplete="off" />
+        <span class="form-error" id="pfNumberError"></span>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="password">Password</label>
+        <div class="password-wrapper">
+          <input class="form-input" type="password" id="password" placeholder="Min. 8 characters" required autocomplete="new-password" />
+          <button type="button" class="password-toggle" id="togglePassword" aria-label="Toggle password visibility">👁</button>
+        </div>
+        <span class="form-error" id="passwordError"></span>
+      </div>
+
+      <button type="submit" class="btn btn--primary btn--full" id="submitBtn">
+        Create Account
+      </button>
+    </form>
+
+    <div class="auth-footer">
+      Already have an account? <a href="index.html">Sign in</a>
+    </div>
+  </div>
+
+  <footer class="auth-page-footer">
+    Ministry of Labour and Social Protection &middot; State Department for Social Protection and Senior Citizen Affairs &middot; GOK &middot; Help Desk Support. &copy; <span id="footerYear">2026</span> All rights reserved.
+  </footer>
+
+  <!-- Supabase CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/demo-controls.js"></script>
+  <script>
+    // Redirect if already logged in
+    (async () => {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (session) await redirectByRole(session);
+    })();
+
+    // Toggle password visibility
+    document.getElementById('togglePassword').addEventListener('click', () => {
+      const pwd = document.getElementById('password');
+      pwd.type = pwd.type === 'password' ? 'text' : 'password';
+    });
+
+    // Form submit
+    document.getElementById('registerForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fullName = document.getElementById('fullName').value.trim();
+      const email    = document.getElementById('email').value.trim();
+      const phone    = document.getElementById('phone').value.trim();
+      const pfNumber = document.getElementById('pfNumber').value.trim();
+      const password = document.getElementById('password').value;
+      const alertEl  = document.getElementById('alert');
+      const btn      = document.getElementById('submitBtn');
+
+      // Clear errors
+      ['nameError','emailError','phoneError','pfNumberError','passwordError'].forEach(clearError);
+      alertEl.style.display = 'none';
+
+      // Validate
+      let valid = true;
+      if (!fullName) { showError('nameError', 'Full name is required'); valid = false; }
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showError('emailError', 'Enter a valid email'); valid = false; }
+      if (!phone) { showError('phoneError', 'Phone number is required'); valid = false; }
+      if (password.length < 8) { showError('passwordError', 'Password must be at least 8 characters'); valid = false; }
+      if (!valid) return;
+
+      btn.disabled = true;
+      btn.textContent = 'Creating account…';
+
+      try {
+        const data = await register(fullName, email, phone, password, pfNumber);
+        alertEl.className = 'auth-alert auth-alert--success';
+        alertEl.style.display = 'block';
+
+        if (data && data.session) {
+          alertEl.textContent = 'Account created successfully! Logging you in...';
+          btn.textContent = 'Redirecting...';
+          document.getElementById('registerForm').reset();
+          setTimeout(async () => {
+            await redirectByRole(data.session);
+          }, 1500);
+        } else {
+          alertEl.textContent = 'Account created! Please check your email to confirm, then sign in.';
+          document.getElementById('registerForm').reset();
+          btn.textContent = 'Account Created';
+        }
+      } catch (err) {
+        alertEl.className = 'auth-alert auth-alert--error';
+        alertEl.textContent = err.message || 'Registration failed. Please try again.';
+        alertEl.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Create Account';
+      }
+    });
+  </script>
+</body>
+</html>
+

@@ -1,0 +1,138 @@
+/* ============================================================
+   responsive.css — Media queries for mobile & tablet
+   ============================================================ */
+
+/* ── Tablet (640px – 1023px) ───────────────────────────────── */
+@media (max-width: 1023px) {
+  .sidebar {
+    transform: translateX(-100%);
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .main {
+    margin-left: 0;
+  }
+
+  .hamburger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .ticket-table th:nth-child(4),
+  .ticket-table td:nth-child(4) {
+    display: none;
+  }
+}
+
+/* ── Mobile (< 640px) ──────────────────────────────────────── */
+@media (max-width: 639px) {
+  :root {
+    --header-h: 56px;
+  }
+
+  .content {
+    padding: 1.25rem 1rem;
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: .75rem;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: .75rem;
+  }
+
+  .stat-card {
+    padding: 1rem;
+    gap: .75rem;
+  }
+
+  .stat-card__icon {
+    width: 40px;
+    height: 40px;
+    font-size: 1.2rem;
+  }
+
+  .stat-card__value { font-size: 1.5rem; }
+
+  /* Hide table, show cards on mobile */
+  .ticket-table-wrap { display: none; }
+  .ticket-cards { display: block; }
+
+  .filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filters__select,
+  .filters__search {
+    width: 100%;
+  }
+
+  /* Ticket detail */
+  .ticket-detail__meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: .5rem;
+  }
+
+  .reply {
+    padding: 1rem;
+    gap: .75rem;
+  }
+
+  .reply__time { display: none; }
+
+  .reply-form,
+  .status-update {
+    padding: 1rem;
+  }
+
+  .status-update__row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  /* Auth */
+  .auth-card {
+    padding: 2rem 1.25rem;
+  }
+
+  /* Toast */
+  .toast {
+    left: 1rem;
+    right: 1rem;
+    bottom: 1rem;
+    max-width: none;
+  }
+
+  /* Admin table — hide extra columns */
+  .ticket-table th:nth-child(3),
+  .ticket-table td:nth-child(3),
+  .ticket-table th:nth-child(5),
+  .ticket-table td:nth-child(5) {
+    display: none;
+  }
+}
+
+/* ── Large screens ─────────────────────────────────────────── */
+@media (min-width: 1280px) {
+  .content {
+    padding: 2rem 2.5rem;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

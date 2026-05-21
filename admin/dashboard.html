@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Portal - Help Desk</title>
+  <link rel="icon" type="image/png" href="../Images/Logo.png" />
+  <link rel="shortcut icon" type="image/png" href="../Images/Logo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/main.css" />
+  <link rel="stylesheet" href="../css/dashboard.css" />
+  <link rel="stylesheet" href="../css/tickets.css" />
+  <link rel="stylesheet" href="../css/responsive.css" />
+  <script src="../js/theme.js"></script>
+</head>
+<body>
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<div class="app">
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <a href="dashboard.html" class="sidebar__brand">
+      <div class="sidebar__brand-icon">
+        <img src="../Images/Logo.png" alt="Help Desk Logo" />
+      </div>
+      <div>
+        <div class="sidebar__brand-name">Help Desk</div>
+        <div class="sidebar__brand-sub">Admin Portal</div>
+      </div>
+    </a>
+
+    <nav class="sidebar__nav">
+      <div class="sidebar__section-label">Menu</div>
+      <a href="dashboard.html" class="sidebar__link active">
+        <span class="sidebar__link-icon">📊</span> Overview
+      </a>
+      <a href="customers.html" class="sidebar__link">
+        <span class="sidebar__link-icon">👥</span> Customers
+      </a>
+      <a href="settings.html" class="sidebar__link">
+        <span class="sidebar__link-icon">⚙️</span> Settings
+      </a>
+    </nav>
+
+    <div class="sidebar__footer">
+      <div class="sidebar__user">
+        <div class="sidebar__avatar" id="userAvatar">A</div>
+        <div class="sidebar__user-info">
+          <div class="sidebar__user-name" id="userName">Admin Support</div>
+          <div class="sidebar__user-role" id="userRole">Admin</div>
+        </div>
+        <button class="sidebar__logout" id="logoutBtn" title="Logout">Log out</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="main">
+    <header class="header">
+      <div class="header__left">
+        <button class="hamburger" id="hamburger" aria-label="Toggle menu">☰</button>
+        <div>
+          <div class="header__title">Overview</div>
+          <div class="header__subtitle">Manage all incoming support requests</div>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="badge badge--resolved" style="padding: 0.35rem 0.75rem; font-size: 0.75rem; text-transform: none;">Admin Session</span>
+        <button class="theme-toggle" aria-label="Toggle theme">☀️</button>
+      </div>
+    </header>
+
+    <main class="content">
+      <!-- Stats -->
+      <div class="stats-grid" id="statsGrid">
+        <div class="stat-card">
+          <div class="stat-card__icon stat-card__icon--blue">🎫</div>
+          <div>
+            <div class="stat-card__value" id="statTotal">—</div>
+            <div class="stat-card__label">Total Incoming</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card__icon stat-card__icon--yellow">⏳</div>
+          <div>
+            <div class="stat-card__value" id="statPending">—</div>
+            <div class="stat-card__label">Pending Action</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card__icon stat-card__icon--green">✅</div>
+          <div>
+            <div class="stat-card__value" id="statResolved">—</div>
+            <div class="stat-card__label">Resolved Issues</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tickets Section -->
+      <div class="page-header">
+        <div>
+          <div class="page-title">Support Tickets</div>
+          <div class="page-subtitle">Track, filter, and respond to member issues</div>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div class="filters">
+        <select class="filters__select" id="filterStatus">
+          <option value="">All Statuses</option>
+          <option value="Pending">Pending</option>
+          <option value="Resolved">Resolved</option>
+        </select>
+        <select class="filters__select" id="filterPriority">
+          <option value="">All Priorities</option>
+          <option value="Low">Low</option>
+          <option value="Medium">Medium</option>
+          <option value="High">High</option>
+        </select>
+        <select class="filters__select" id="filterCategory">
+          <option value="">All Categories</option>
+          <option value="Technical">Technical</option>
+          <option value="Billing">Billing</option>
+          <option value="General">General</option>
+          <option value="Other">Other</option>
+        </select>
+        <input type="text" class="filters__search" id="searchBar" placeholder="Search by ticket # or subject..." />
+      </div>
+
+      <!-- Table (desktop) -->
+      <div class="ticket-table-wrap">
+        <table class="ticket-table">
+          <thead>
+            <tr>
+              <th>Ticket No.</th>
+              <th>Member Name</th>
+              <th>Subject</th>
+              <th>Category</th>
+              <th>Priority</th>
+              <th>Status</th>
+              <th>Date</th>
+              <th style="text-align: right; padding-right: 1.5rem;">Action</th>
+            </tr>
+          </thead>
+          <tbody id="ticketTableBody">
+            <tr><td colspan="8"><div class="page-loader"><div class="spinner"></div></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Cards (mobile) -->
+      <div class="ticket-cards" id="ticketCards"></div>
+    </main>
+
+    <footer class="app-footer">
+      <div class="app-footer__copyright">
+        Ministry of Labour and Social Protection &middot; State Department for Social Protection and Senior Citizen Affairs &middot; GOK &middot; Help Desk Support. &copy; <span id="footerYear">2026</span> All rights reserved.
+      </div>
+      <div class="app-footer__brand">
+        <img src="../Images/Logo.png" alt="Help Desk Logo" style="width: 16px; height: 16px; display: inline-block; vertical-align: middle; margin-right: 4px;" /> Help Desk Support
+      </div>
+    </footer>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/supabase-client.js"></script>
+<script src="../js/utils.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/admin.js"></script>
+<script src="../js/realtime.js"></script>
+<script src="../js/demo-controls.js"></script>
+<script>
+  let currentUser = null;
+
+  async function init() {
+    const session = await requireAdmin();
+    if (!session) return;
+    currentUser = session.user;
+
+    // Fetch and display active profile
+    const profile = await getCurrentProfile();
+    if (profile) {
+      document.getElementById('userName').textContent = profile.full_name || 'Admin';
+      document.getElementById('userAvatar').textContent = (profile.full_name || 'A')[0].toUpperCase();
+    } else if (currentUser && currentUser.email) {
+      const fallbackName = currentUser.email.split('@')[0];
+      document.getElementById('userName').textContent = fallbackName;
+      document.getElementById('userAvatar').textContent = fallbackName[0].toUpperCase();
+      if(document.getElementById('userRole')) {
+        document.getElementById('userRole').textContent = fallbackName.toLowerCase().includes('admin') ? 'Admin' : 'Member';
+      }
+    }
+    if (profile) {
+      if(document.getElementById('userRole')) {
+        document.getElementById('userRole').textContent = profile.role === 'admin' ? 'Admin' : 'Member';
+      }
+    }
+
+    await loadStats();
+    await loadTickets();
+
+    // Attach filter listeners
+    document.getElementById('filterStatus').addEventListener('change', loadTickets);
+    document.getElementById('filterPriority').addEventListener('change', loadTickets);
+    document.getElementById('filterCategory').addEventListener('change', loadTickets);
+    document.getElementById('searchBar').addEventListener('input', debounce(loadTickets, 300));
+
+    // Realtime listeners
+    subscribeToAllTickets(async (payload) => {
+      await loadStats();
+      await loadTickets();
+
+      if (payload && payload.eventType === 'INSERT') {
+        const newTicket = payload.new;
+        showToast(`🎫 New ticket submitted: ${formatTicketNumber(newTicket.ticket_number, newTicket.id)}`, 'info');
+      }
+    });
+  }
+
+  async function loadStats() {
+    try {
+      const stats = await fetchAdminStats();
+      document.getElementById('statTotal').textContent   = stats.total;
+      document.getElementById('statPending').textContent = stats.pending;
+      document.getElementById('statResolved').textContent = stats.resolved;
+    } catch (e) { console.error(e); }
+  }
+
+  async function loadTickets() {
+    try {
+      const status   = document.getElementById('filterStatus').value || null;
+      const priority = document.getElementById('filterPriority').value || null;
+      const category = document.getElementById('filterCategory').value || null;
+      const query    = document.getElementById('searchBar').value.toLowerCase().trim();
+
+      let tickets = await fetchAllTickets({ status, priority, category });
+
+      // Apply search term filters if active
+      if (query) {
+        tickets = tickets.filter(t => {
+          const formattedNum = formatTicketNumber(t.ticket_number, t.id).toLowerCase();
+          return formattedNum.includes(query) ||
+            (t.subject && t.subject.toLowerCase().includes(query)) ||
+            (t.profiles?.full_name && t.profiles.full_name.toLowerCase().includes(query)) ||
+            (t.profiles?.email && t.profiles.email.toLowerCase().includes(query)) ||
+            (t.profiles?.phone && t.profiles.phone.toLowerCase().includes(query));
+        });
+      }
+
+      renderTable(tickets);
+      renderCards(tickets);
+    } catch (e) {
+      console.error(e);
+      document.getElementById('ticketTableBody').innerHTML =
+        `<tr><td colspan="7" style="text-align:center;color:var(--danger)">Failed to load tickets.</td></tr>`;
+    }
+  }
+
+  function renderTable(tickets) {
+    const tbody = document.getElementById('ticketTableBody');
+    if (!tickets.length) {
+      tbody.innerHTML = `<tr><td colspan="8">
+        <div class="empty-state">
+          <div class="empty-state__icon">🎫</div>
+          <div class="empty-state__title">No tickets match criteria</div>
+          <p>No new customer support requests found.</p>
+        </div></td></tr>`;
+      return;
+    }
+    tbody.innerHTML = tickets.map(t => `
+      <tr>
+        <td class="text-muted text-sm">${formatTicketNumber(t.ticket_number, t.id)}</td>
+        <td class="font-medium">${escapeHtml(t.profiles?.full_name || 'Member')}</td>
+        <td class="ticket-table__subject">
+          <span class="ticket-table__subject-text">${escapeHtml(t.subject)}</span>
+          <div class="ticket-table__meta">${escapeHtml(t.category)}</div>
+        </td>
+        <td>${escapeHtml(t.category)}</td>
+        <td>${priorityBadge(t.priority)}</td>
+        <td>${statusBadge(t.status)}</td>
+        <td class="text-sm text-muted">${formatDate(t.created_at)}</td>
+        <td style="text-align: right; padding-right: 1.5rem;">
+          <a href="ticket-detail.html?id=${t.id}" onclick="event.preventDefault(); navigateTo('ticket-detail.html', '${t.id}');" class="btn btn--primary btn--sm" style="padding: 0.3rem 0.75rem; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 0.25rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em;">
+            Review &nbsp;→
+          </a>
+        </td>
+      </tr>`).join('');
+  }
+
+  function renderCards(tickets) {
+    const container = document.getElementById('ticketCards');
+    if (!tickets.length) {
+      container.innerHTML = `<div class="empty-state">
+        <div class="empty-state__icon">🎫</div>
+        <div class="empty-state__title">No tickets match criteria</div>
+      </div>`;
+      return;
+    }
+    container.innerHTML = tickets.map(t => `
+      <a href="ticket-detail.html?id=${t.id}" onclick="event.preventDefault(); navigateTo('ticket-detail.html', '${t.id}');" class="ticket-card">
+        <div class="ticket-card__header">
+          <div class="ticket-card__subject">${escapeHtml(t.subject)}</div>
+          ${statusBadge(t.status)}
+        </div>
+        <div class="ticket-card__meta">${formatTicketNumber(t.ticket_number, t.id)} · ${escapeHtml(t.profiles?.full_name || 'Member')} · ${escapeHtml(t.category)}</div>
+        <div class="ticket-card__footer">
+          ${priorityBadge(t.priority)}
+          <span class="text-xs text-muted">${formatDate(t.created_at)}</span>
+        </div>
+      </a>`).join('');
+  }
+
+  // Simple debounce helper
+  function debounce(fn, delay) {
+    let timer = null;
+    return function (...args) {
+      clearTimeout(timer);
+      timer = setTimeout(() => fn.apply(this, args), delay);
+    };
+  }
+
+  // Hamburger
+  document.getElementById('hamburger').addEventListener('click', () => {
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('sidebarOverlay').classList.toggle('active');
+  });
+  document.getElementById('sidebarOverlay').addEventListener('click', () => {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebarOverlay').classList.remove('active');
+  });
+
+  // Logout
+  document.getElementById('logoutBtn').addEventListener('click', logout);
+
+  init();
+</script>
+</body>
+</html>

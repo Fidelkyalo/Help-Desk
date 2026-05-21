@@ -1,0 +1,326 @@
+/* ============================================================
+   tickets.css — Support Ticket Management: Lists, Details & Replies
+   ============================================================ */
+
+/* ── Filters & Search Bar ──────────────────────────────────── */
+.filters {
+  display: flex;
+  align-items: center;
+  gap: .875rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.filters__select {
+  padding: .5rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: .875rem;
+  font-weight: 500;
+  color: var(--text);
+  background: var(--input-bg);
+  backdrop-filter: blur(8px);
+  cursor: pointer;
+  outline: none;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  min-width: 140px;
+}
+.filters__select:focus { border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary-glow); }
+
+.filters__search {
+  flex: 1;
+  min-width: 240px;
+  padding: .5rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: .875rem;
+  color: var(--text);
+  background: var(--input-bg);
+  backdrop-filter: blur(8px);
+  outline: none;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.filters__search:focus { border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary-glow); }
+.filters__search::placeholder { color: var(--text-light); }
+
+/* ── Support Ticket Table (Desktop) ────────────────────────── */
+.ticket-table-wrap {
+  background: var(--surface);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  transition: border-color 0.3s;
+}
+.ticket-table-wrap:hover { border-color: var(--border-hover); }
+
+.ticket-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.ticket-table th {
+  background: var(--table-th-bg);
+  padding: 1rem 1.25rem;
+  text-align: left;
+  font-size: .75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.ticket-table td {
+  padding: 1.1rem 1.25rem;
+  font-size: .875rem;
+  color: var(--text);
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+  transition: background-color 0.2s;
+}
+
+.ticket-table tr:last-child td { border-bottom: none; }
+.ticket-table tr:hover td { background: var(--table-row-hover); }
+
+.ticket-table__link {
+  color: var(--text);
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.15s;
+}
+.ticket-table__link:hover { color: var(--primary); text-decoration: none; }
+
+.ticket-table__subject { max-width: 320px; }
+.ticket-table__subject-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+.ticket-table__meta { font-size: .75rem; color: var(--text-muted); margin-top: .2rem; font-weight: 500; }
+
+/* ── Mobile Ticket Cards ───────────────────────────────────── */
+.ticket-cards { display: none; }
+
+.ticket-card {
+  background: var(--surface);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+  box-shadow: var(--shadow-lg);
+  text-decoration: none;
+  display: block;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.ticket-card:hover {
+  border-color: var(--border-hover);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.ticket-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: .75rem;
+  margin-bottom: .6rem;
+}
+
+.ticket-card__subject { font-weight: 700; color: var(--text); font-size: 1rem; font-family: var(--font-display); }
+.ticket-card__meta { font-size: .8rem; color: var(--text-muted); margin-top: .25rem; font-weight: 500; }
+.ticket-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 1rem;
+}
+
+/* ── Ticket Detail View ─────────────────────────────────────── */
+.ticket-detail {
+  max-width: 880px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.ticket-detail__header {
+  background: var(--surface);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.75rem;
+  box-shadow: var(--shadow-lg);
+}
+
+.ticket-detail__number {
+  font-size: .8rem;
+  color: var(--primary);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: .5rem;
+}
+
+.ticket-detail__title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 1rem;
+  font-family: var(--font-display);
+}
+
+.ticket-detail__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .875rem;
+  align-items: center;
+}
+
+.ticket-detail__meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: .375rem;
+  font-size: .8rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.ticket-detail__description {
+  background: var(--surface);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem 1.75rem;
+  box-shadow: var(--shadow-lg);
+}
+
+.ticket-detail__description p {
+  color: var(--text);
+  line-height: 1.8;
+  font-size: .95rem;
+  white-space: pre-wrap;
+}
+
+/* ── Conversation Replies Feed ─────────────────────────────── */
+.replies {
+  background: var(--surface);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+
+.replies__header {
+  padding: 1.25rem 1.75rem;
+  border-bottom: 1px solid var(--border);
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--text);
+  font-family: var(--font-display);
+  background: var(--table-th-bg);
+}
+
+.replies__list {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.reply {
+  padding: 1.5rem 1.75rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 1.25rem;
+  transition: background-color 0.25s;
+}
+.reply:last-child { border-bottom: none; }
+
+.reply--admin { background: var(--primary-light); }
+
+.reply__avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: .9rem;
+  flex-shrink: 0;
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.reply__avatar--user  { background: linear-gradient(135deg, #475569 0%, #64748b 100%); }
+.reply__avatar--admin { background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); }
+
+.reply__body { flex: 1; min-width: 0; }
+.reply__meta {
+  display: flex;
+  align-items: center;
+  gap: .625rem;
+  margin-bottom: .45rem;
+}
+.reply__author { font-weight: 700; font-size: .9rem; color: var(--text); }
+.reply__role   {
+  font-size: .65rem;
+  background: var(--primary-light);
+  color: var(--primary);
+  padding: .15rem .5rem;
+  border-radius: 99px;
+  font-weight: 700;
+  border: 1px solid var(--primary-glow);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.reply__time   { font-size: .75rem; color: var(--text-muted); margin-left: auto; font-weight: 500; }
+.reply__message { font-size: .9rem; color: var(--text); line-height: 1.65; white-space: pre-wrap; }
+
+/* ── Reply Posting Form ────────────────────────────────────── */
+.reply-form {
+  background: var(--surface);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem 1.75rem;
+  box-shadow: var(--shadow-lg);
+}
+
+.reply-form__title {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--text);
+  margin-bottom: 1.25rem;
+  font-family: var(--font-display);
+}
+
+/* ── Status Update Panel (Admin) ───────────────────────────── */
+.status-update {
+  background: var(--surface);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem 1.75rem;
+  box-shadow: var(--shadow-lg);
+}
+
+.status-update__title {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--text);
+  margin-bottom: 1rem;
+  font-family: var(--font-display);
+}
+
+.status-update__row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}

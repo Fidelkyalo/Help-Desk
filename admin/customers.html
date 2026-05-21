@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Customer Directory - Admin Portal</title>
+  <link rel="icon" type="image/png" href="../Images/Logo.png" />
+  <link rel="shortcut icon" type="image/png" href="../Images/Logo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/main.css" />
+  <link rel="stylesheet" href="../css/dashboard.css" />
+  <link rel="stylesheet" href="../css/tickets.css" />
+  <link rel="stylesheet" href="../css/responsive.css" />
+  <script src="../js/theme.js"></script>
+  <style>
+    .directory-layout {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 1.5rem;
+      height: calc(100vh - var(--header-h) - 4rem);
+    }
+    @media (max-width: 992px) {
+      .directory-layout { grid-template-columns: 1fr; height: auto; }
+      .directory-list-panel { max-height: 400px; }
+    }
+    .directory-list-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+    .directory-search-wrap {
+      padding: 1.25rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--primary-light);
+    }
+    .directory-search {
+      width: 100%;
+      background: var(--input-bg);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 0.75rem 1rem;
+      color: var(--text);
+      font-size: 0.9rem;
+      font-family: var(--font);
+      outline: none;
+      transition: all 0.2s;
+    }
+    .directory-search::placeholder { color: var(--text-light); }
+    .directory-search:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-glow);
+      background: var(--input-bg-focus);
+    }
+    .customer-list { flex: 1; overflow-y: auto; padding: 0.5rem; }
+    .customer-item {
+      display: flex; align-items: center; gap: 1rem;
+      padding: 1rem; border-radius: var(--radius-sm);
+      cursor: pointer; transition: all 0.2s;
+      border: 1px solid transparent; margin-bottom: 0.25rem;
+    }
+    .customer-item:hover  { background: var(--primary-light); }
+    .customer-item.active { background: var(--primary-light); border-color: var(--primary-glow); }
+    .customer-avatar {
+      width: 42px; height: 42px; border-radius: 50%;
+      background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-weight: 700; font-size: 1.1rem; flex-shrink: 0;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    }
+    .customer-info { flex: 1; min-width: 0; }
+    .customer-name {
+      font-weight: 600; color: var(--text); font-size: 0.95rem;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;
+    }
+    .customer-email {
+      font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .customer-stats-badge {
+      background: var(--primary-light); color: var(--text-muted);
+      font-size: 0.7rem; padding: 0.2rem 0.5rem;
+      border-radius: 12px; font-weight: 600; flex-shrink: 0;
+    }
+    .directory-detail-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      display: flex; flex-direction: column; overflow: hidden; position: relative;
+    }
+    .detail-placeholder {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center; padding: 2rem;
+      background: var(--surface); z-index: 10; transition: opacity 0.3s;
+    }
+    .detail-placeholder-icon { font-size: 4rem; margin-bottom: 1rem; opacity: 0.5; }
+    .detail-placeholder h3 { color: var(--text); }
+    .detail-placeholder p  { color: var(--text-muted); }
+    .detail-content { flex: 1; overflow-y: auto; padding: 2rem; }
+    .profile-card {
+      display: flex; align-items: flex-start; gap: 1.5rem;
+      padding-bottom: 2rem; border-bottom: 1px solid var(--border);
+      margin-bottom: 2rem; flex-wrap: wrap;
+    }
+    .profile-card__avatar {
+      width: 80px; height: 80px; border-radius: 50%;
+      background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%);
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-weight: 700; font-size: 2.5rem; flex-shrink: 0;
+      box-shadow: 0 8px 20px rgba(236,72,153,0.25);
+    }
+    .profile-card__info { flex: 1; min-width: 250px; }
+    .profile-card__name {
+      font-size: 1.75rem; font-weight: 700; color: var(--text);
+      font-family: var(--font-display); margin-bottom: 0.25rem;
+    }
+    .profile-card__role {
+      display: inline-block; background: var(--primary-light); color: var(--primary);
+      font-size: 0.75rem; padding: 0.25rem 0.75rem; border-radius: 12px;
+      font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem;
+    }
+    .profile-card__details { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap: 1.5rem; }
+    .detail-item { display: flex; flex-direction: column; gap: 0.35rem; }
+    .detail-item__label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
+    .detail-item__value { font-size: 0.95rem; color: var(--text); font-weight: 500; }
+    .profile-stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 1rem; margin-bottom: 2.5rem; }
+    @media (max-width: 640px) { .profile-stats { grid-template-columns: 1fr; } }
+    .profile-stat-box {
+      background: var(--primary-light); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.25rem; text-align: center;
+    }
+    .profile-stat-box__value {
+      font-size: 1.75rem; font-weight: 700; color: var(--text);
+      font-family: var(--font-display); line-height: 1; margin-bottom: 0.35rem;
+    }
+    .profile-stat-box__label { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+    .history-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
+    .history-title  { font-size: 1.1rem; font-weight: 700; color: var(--text); }
+    .suspended-badge {
+      background: var(--danger-light); color: var(--danger);
+      font-size: 0.6rem; padding: 0.15rem 0.45rem; border-radius: 8px;
+      font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+      border: 1px solid rgba(220,38,38,0.3); flex-shrink: 0;
+    }
+    .suspension-banner {
+      background: var(--danger-light); border: 1px solid rgba(220,38,38,0.3);
+      border-radius: var(--radius); padding: 1.25rem; margin-bottom: 1.5rem;
+      display: flex; align-items: flex-start; gap: 1rem;
+    }
+    .suspension-banner__icon   { font-size: 1.5rem; flex-shrink: 0; margin-top: 0.1rem; }
+    .suspension-banner__body   { flex: 1; min-width: 0; }
+    .suspension-banner__title  { font-weight: 700; color: var(--danger); font-size: 0.9rem; margin-bottom: 0.35rem; }
+    .suspension-banner__detail { font-size: 0.82rem; color: var(--text-muted); line-height: 1.55; }
+    .suspension-banner__actions { display: flex; gap: 0.5rem; margin-top: 0.75rem; }
+    .admin-actions-bar {
+      display: flex; gap: 0.75rem;
+      padding-bottom: 1.5rem; margin-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border); flex-wrap: wrap;
+    }
+    .btn--danger  { background: var(--danger-light);  color: var(--danger);  border: 1px solid rgba(220,38,38,0.35); }
+    .btn--danger:hover  { background: rgba(220,38,38,0.18); }
+    .btn--warning { background: var(--warning-light); color: var(--warning); border: 1px solid rgba(180,83,9,0.35); }
+    .btn--warning:hover { background: rgba(180,83,9,0.18); }
+    .btn--success { background: var(--success-light); color: var(--success); border: 1px solid rgba(5,150,105,0.35); }
+    .btn--success:hover { background: rgba(5,150,105,0.18); }
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; z-index: 1000;
+      background: rgba(0,0,0,0.55); backdrop-filter: blur(6px);
+      align-items: center; justify-content: center; padding: 1rem;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal-box {
+      background: var(--surface-solid); border: 1px solid var(--border);
+      border-radius: 18px; padding: 2rem; max-width: 500px; width: 100%;
+      box-shadow: var(--shadow-lg); animation: slideUp 0.3s ease;
+    }
+    .modal-box__title    { font-size: 1.2rem; font-weight: 700; color: var(--text); margin-bottom: 0.4rem; }
+    .modal-box__subtitle { color: var(--text-muted); font-size: 0.875rem; line-height: 1.6; margin-bottom: 1.5rem; }
+    .duration-grid { display: grid; grid-template-columns: repeat(5,1fr); gap: 0.5rem; margin-bottom: 1rem; }
+    @media(max-width:480px){ .duration-grid { grid-template-columns: repeat(3,1fr); } }
+    .duration-option {
+      padding: 0.55rem 0.25rem; border: 1.5px solid var(--border);
+      border-radius: 8px; background: var(--input-bg); color: var(--text-muted);
+      font-size: 0.8rem; font-weight: 600; cursor: pointer;
+      text-align: center; transition: all 0.2s; font-family: inherit;
+    }
+    .duration-option:hover, .duration-option.selected {
+      background: var(--primary-light); border-color: var(--primary); color: var(--primary);
+    }
+    .modal-textarea, .modal-input {
+      width: 100%; background: var(--input-bg); border: 1.5px solid var(--border);
+      border-radius: 8px; padding: 0.75rem 1rem; color: var(--text);
+      font-size: 0.9rem; font-family: inherit; outline: none;
+      transition: border-color 0.2s; box-sizing: border-box;
+    }
+    .modal-textarea { resize: vertical; min-height: 100px; }
+    .modal-textarea::placeholder, .modal-input::placeholder { color: var(--text-light); }
+    .modal-textarea:focus, .modal-input:focus {
+      border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-glow);
+      background: var(--input-bg-focus);
+    }
+    .modal-error {
+      background: var(--danger-light); border: 1px solid rgba(220,38,38,0.3);
+      border-radius: 8px; padding: 0.75rem 1rem; color: var(--danger);
+      font-size: 0.85rem; margin-top: 0.75rem; display: none;
+    }
+    .modal-actions { display: flex; gap: 0.75rem; margin-top: 1.5rem; }
+    @keyframes slideUp {
+      from { transform: translateY(24px); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <a href="dashboard.html" class="sidebar__brand">
+      <div class="sidebar__brand-icon">
+        <img src="../Images/Logo.png" alt="Help Desk Logo" />
+      </div>
+      <div>
+        <div class="sidebar__brand-name">Help Desk</div>
+        <div class="sidebar__brand-sub">Admin Portal</div>
+      </div>
+    </a>
+    <nav class="sidebar__nav">
+      <div class="sidebar__section-label">Menu</div>
+      <a href="dashboard.html" class="sidebar__link"><span class="sidebar__link-icon">📊</span> Overview</a>
+      <a href="customers.html" class="sidebar__link active"><span class="sidebar__link-icon">👥</span> Customers</a>
+      <a href="settings.html" class="sidebar__link"><span class="sidebar__link-icon">⚙️</span> Settings</a>
+    </nav>
+    <div class="sidebar__footer">
+      <div class="sidebar__user">
+        <div class="sidebar__avatar" id="userAvatar">A</div>
+        <div class="sidebar__user-info">
+          <div class="sidebar__user-name" id="userName">Admin Support</div>
+          <div class="sidebar__user-role">Administrator</div>
+        </div>
+        <button class="sidebar__logout" id="logoutBtn" title="Logout">Log out</button>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="header">
+      <div class="header__left">
+        <button class="hamburger" id="hamburger" aria-label="Toggle menu">☰</button>
+        <div>
+          <div class="header__title">Customer Directory</div>
+          <div class="header__subtitle">Search, analyze and view full customer details and issue histories</div>
+        </div>
+      </div>
+      <button class="theme-toggle" aria-label="Toggle theme">☀️</button>
+    </header>
+
+    <main class="content">
+      <div class="directory-layout">
+
+        <!-- Left Panel -->
+        <div class="directory-list-panel">
+          <div class="directory-search-wrap">
+            <input type="text" class="directory-search" id="customerSearch" placeholder="Search by name, email, or phone..." />
+          </div>
+          <div class="customer-list" id="customerList">
+            <div style="padding: 2rem; text-align: center;">
+              <div class="spinner" style="margin: 0 auto;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Panel -->
+        <div class="directory-detail-panel">
+          <div class="detail-placeholder" id="detailPlaceholder">
+            <div class="detail-placeholder-icon">👥</div>
+            <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem;">No Customer Selected</h3>
+            <p>Select a customer from the directory to view their complete profile and support ticket history.</p>
+          </div>
+
+          <div class="detail-content" id="detailContent" style="display: none;">
+            <div class="profile-card">
+              <div class="profile-card__avatar" id="detailAvatar">?</div>
+              <div class="profile-card__info">
+                <div class="profile-card__name" id="detailName">Loading...</div>
+                <div class="profile-card__role" id="detailRole">Customer</div>
+                <div class="profile-card__details">
+                  <div class="detail-item">
+                    <span class="detail-item__label">Email Address</span>
+                    <span class="detail-item__value" id="detailEmail">—</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-item__label">Phone Number</span>
+                    <span class="detail-item__value" id="detailPhone">—</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-item__label">Member Since</span>
+                    <span class="detail-item__value" id="detailJoined">—</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="suspension-banner" id="suspensionBanner" style="display:none;">
+              <div class="suspension-banner__icon">🚫</div>
+              <div class="suspension-banner__body">
+                <div class="suspension-banner__title">Account Suspended</div>
+                <div class="suspension-banner__detail" id="suspensionDetails"></div>
+                <div class="suspension-banner__actions">
+                  <button class="btn btn--success btn--sm" id="liftSuspensionBtn" onclick="liftSuspension()">✓ Lift Suspension</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="admin-actions-bar">
+              <button class="btn btn--warning btn--sm" id="suspendCustomerBtn" onclick="openSuspendModal()">⏸ Suspend Account</button>
+              <button class="btn btn--danger btn--sm" onclick="openDeleteCustomerModal()">🗑 Delete Account</button>
+            </div>
+
+            <div class="profile-stats">
+              <div class="profile-stat-box">
+                <div class="profile-stat-box__value" id="statTotalTickets" style="color: var(--primary);">0</div>
+                <div class="profile-stat-box__label">Total Requests</div>
+              </div>
+              <div class="profile-stat-box">
+                <div class="profile-stat-box__value" id="statPendingTickets" style="color: var(--warning);">0</div>
+                <div class="profile-stat-box__label">Pending Action</div>
+              </div>
+              <div class="profile-stat-box">
+                <div class="profile-stat-box__value" id="statResolvedTickets" style="color: var(--success);">0</div>
+                <div class="profile-stat-box__label">Resolved Issues</div>
+              </div>
+            </div>
+
+            <div class="history-header">
+              <div class="history-title">Support Ticket History</div>
+            </div>
+
+            <div class="ticket-table-wrap">
+              <table class="ticket-table">
+                <thead>
+                  <tr>
+                    <th>Ticket No.</th>
+                    <th>Subject</th>
+                    <th>Category</th>
+                    <th>Priority</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                    <th style="text-align: right; padding-right: 1.5rem;">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="historyTableBody">
+                  <tr><td colspan="7"><div class="page-loader"><div class="spinner"></div></div></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer class="app-footer">
+      <div class="app-footer__copyright">
+        Ministry of Labour and Social Protection &middot; State Department for Social Protection and Senior Citizen Affairs &middot; GOK &middot; Help Desk Support. &copy; <span id="footerYear">2026</span> All rights reserved.
+      </div>
+      <div class="app-footer__brand">
+        <img src="../Images/Logo.png" alt="Help Desk Logo" style="width: 16px; height: 16px; display: inline-block; vertical-align: middle; margin-right: 4px;" /> Help Desk Support
+      </div>
+    </footer>
+  </div>
+</div>
+
+<!-- Suspend Account Modal -->
+<div class="modal-overlay" id="suspendModal">
+  <div class="modal-box">
+    <div style="margin-bottom:1.25rem;">
+      <div style="font-size:2rem;margin-bottom:0.5rem;">⏸️</div>
+      <div class="modal-box__title">Suspend Account</div>
+      <div class="modal-box__subtitle">
+        You are about to suspend <strong id="suspendTargetName"></strong>'s account.
+        They will be blocked from logging in during the suspension period.
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Reason for Suspension <span style="color:var(--danger);">*</span></label>
+      <textarea class="modal-textarea" id="suspendReasonInput" placeholder="Explain why this account is being suspended..."></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label" style="display:block;margin-bottom:0.6rem;">Suspension Duration <span style="color:var(--danger);">*</span></label>
+      <div class="duration-grid">
+        <button class="duration-option" onclick="selectDuration(this, 1)">1 Day</button>
+        <button class="duration-option" onclick="selectDuration(this, 3)">3 Days</button>
+        <button class="duration-option" onclick="selectDuration(this, 7)">7 Days</button>
+        <button class="duration-option" onclick="selectDuration(this, 30)">30 Days</button>
+        <button class="duration-option" onclick="selectDuration(this, 'custom')">Custom</button>
+      </div>
+    </div>
+    <div class="form-group" id="customDateGroup" style="display:none;">
+      <label class="form-label">Suspend Until <span style="color:var(--danger);">*</span></label>
+      <input type="datetime-local" class="modal-input" id="suspendUntilInput" />
+    </div>
+    <div class="modal-error" id="suspendModalError"></div>
+    <div class="modal-actions">
+      <button class="btn btn--primary" id="confirmSuspendBtn" style="flex:1;" onclick="confirmSuspend()">⏸ Suspend Account</button>
+      <button class="btn btn--secondary" style="flex:1;" onclick="closeSuspendModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Customer Modal -->
+<div class="modal-overlay" id="deleteCustomerModal">
+  <div class="modal-box" style="border-color:rgba(220,38,38,0.35);">
+    <div style="text-align:center;margin-bottom:1.5rem;">
+      <div style="width:64px;height:64px;border-radius:50%;background:var(--danger-light);border:2px solid rgba(220,38,38,0.4);display:flex;align-items:center;justify-content:center;font-size:1.75rem;margin:0 auto 1rem;">🗑️</div>
+      <div class="modal-box__title">Delete Customer Account</div>
+      <div class="modal-box__subtitle">
+        Permanently delete <strong id="deleteCustomerTargetName"></strong>'s account, all their support tickets, and data.
+        <strong style="color:var(--danger);">This cannot be undone.</strong>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label" style="font-size:0.8rem;">Type <span style="color:var(--danger);font-family:monospace;font-weight:700;">DELETE</span> to confirm</label>
+      <input type="text" class="modal-input" id="deleteCustomerConfirmInput" placeholder="DELETE" autocomplete="off" style="border-color:rgba(220,38,38,0.35);" />
+    </div>
+    <div class="modal-error" id="deleteCustomerModalError"></div>
+    <div class="modal-actions">
+      <button class="btn" id="confirmDeleteCustomerBtn" style="flex:1;background:linear-gradient(135deg,#dc2626,#b91c1c);color:#fff;border:none;font-weight:600;" onclick="confirmDeleteCustomer()">Delete Account</button>
+      <button class="btn btn--secondary" style="flex:1;" onclick="closeDeleteCustomerModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/supabase-client.js"></script>
+<script src="../js/utils.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/admin.js"></script>
+<script src="../js/demo-controls.js"></script>
+<script>
+  let currentUser = null;
+  let allCustomers = [];
+  let allTickets = [];
+  let activeCustomerId = null;
+  let selectedDurationDays = null;
+
+  async function init() {
+    const session = await requireAdmin();
+    if (!session) return;
+    currentUser = session.user;
+    const profile = await getCurrentProfile();
+    if (profile) {
+      document.getElementById('userName').textContent = profile.full_name || 'Admin';
+      document.getElementById('userAvatar').textContent = (profile.full_name || 'A')[0].toUpperCase();
+    } else if (currentUser && currentUser.email) {
+      const n = currentUser.email.split('@')[0];
+      document.getElementById('userName').textContent = n;
+      document.getElementById('userAvatar').textContent = n[0].toUpperCase();
+    }
+    await loadData();
+    document.getElementById('customerSearch').addEventListener('input', (e) => {
+      renderCustomerList(e.target.value);
+    });
+  }
+
+  async function loadData() {
+    try {
+      allTickets = await fetchAllTickets();
+      const { data: profilesData, error } = await supabaseClient
+        .from('profiles').select('*').eq('role', 'user').order('created_at', { ascending: false });
+      if (error) throw error;
+      allCustomers = (profilesData || []).map(c => ({
+        ...c,
+        ticketCount: allTickets.filter(t => t.user_id === c.id).length
+      }));
+      renderCustomerList();
+    } catch (e) {
+      console.error('Failed to load customer data:', e);
+      document.getElementById('customerList').innerHTML =
+        `<div class="empty-state" style="padding:2rem;"><div class="empty-state__icon">⚠️</div><div style="color:var(--danger);font-weight:500;">Failed to load customers.</div></div>`;
+    }
+  }
+
+  function renderCustomerList(searchQuery = '') {
+    const listEl = document.getElementById('customerList');
+    const q = searchQuery.toLowerCase().trim();
+    let filtered = q
+      ? allCustomers.filter(c =>
+          (c.full_name && c.full_name.toLowerCase().includes(q)) ||
+          (c.email     && c.email.toLowerCase().includes(q))     ||
+          (c.phone     && c.phone.toLowerCase().includes(q)))
+      : allCustomers;
+
+    if (!filtered.length) {
+      listEl.innerHTML = `<div class="empty-state" style="padding:2rem;transform:scale(0.9);">
+        <div class="empty-state__icon">🔍</div>
+        <div class="empty-state__title">No matches found</div>
+        <p style="font-size:0.8rem;">Try a different name, email, or phone number.</p></div>`;
+      return;
+    }
+    listEl.innerHTML = filtered.map(c => {
+      const initial = (c.full_name || 'U')[0].toUpperCase();
+      const isActive = activeCustomerId === c.id ? 'active' : '';
+      const suspBadge = c.suspended ? `<span class="suspended-badge">Suspended</span>` : '';
+      return `<div class="customer-item ${isActive}" onclick="selectCustomer('${c.id}')" id="customer-item-${c.id}">
+        <div class="customer-avatar" style="${c.suspended ? 'filter:grayscale(0.6);opacity:0.7;' : ''}">${initial}</div>
+        <div class="customer-info">
+          <div class="customer-name">${escapeHtml(c.full_name || 'Unknown User')} ${suspBadge}</div>
+          <div class="customer-email">${escapeHtml(c.email || 'No email')}</div>
+        </div>
+        <div class="customer-stats-badge">${c.ticketCount} Ticket${c.ticketCount !== 1 ? 's' : ''}</div>
+      </div>`;
+    }).join('');
+  }
+</script>
+<script>
+  function selectCustomer(customerId) {
+    if (activeCustomerId) {
+      const prev = document.getElementById(`customer-item-${activeCustomerId}`);
+      if (prev) prev.classList.remove('active');
+    }
+    activeCustomerId = customerId;
+    const current = document.getElementById(`customer-item-${customerId}`);
+    if (current) current.classList.add('active');
+
+    document.getElementById('detailPlaceholder').style.opacity = '0';
+    setTimeout(() => {
+      document.getElementById('detailPlaceholder').style.display = 'none';
+      document.getElementById('detailContent').style.display = 'block';
+    }, 300);
+
+    const customer = allCustomers.find(c => c.id === customerId);
+    if (!customer) return;
+
+    document.getElementById('detailAvatar').textContent = (customer.full_name || 'U')[0].toUpperCase();
+    document.getElementById('detailName').textContent   = customer.full_name || 'Unknown User';
+    document.getElementById('detailEmail').textContent  = customer.email    || 'No email provided';
+    document.getElementById('detailPhone').textContent  = customer.phone    || 'No phone provided';
+    document.getElementById('detailJoined').textContent = formatDate(customer.created_at);
+
+    const banner     = document.getElementById('suspensionBanner');
+    const suspendBtn = document.getElementById('suspendCustomerBtn');
+    const liftBtn    = document.getElementById('liftSuspensionBtn');
+
+    if (customer.suspended) {
+      const untilStr  = customer.suspension_until ? formatDate(customer.suspension_until) : 'further notice';
+      const reasonStr = customer.suspension_reason || 'No reason provided';
+      document.getElementById('suspensionDetails').innerHTML =
+        `Suspended until <strong style="color:var(--danger);">${untilStr}</strong><br>
+         <span style="margin-top:0.2rem;display:block;">Reason: ${escapeHtml(reasonStr)}</span>`;
+      banner.style.display     = 'flex';
+      suspendBtn.style.display = 'none';
+      liftBtn.disabled         = false;
+      liftBtn.textContent      = '✓ Lift Suspension';
+    } else {
+      banner.style.display     = 'none';
+      suspendBtn.style.display = 'inline-flex';
+    }
+
+    const userTickets = allTickets.filter(t => t.user_id === customerId);
+    document.getElementById('statTotalTickets').textContent    = userTickets.length;
+    document.getElementById('statPendingTickets').textContent  = userTickets.filter(t => t.status === 'Pending').length;
+    document.getElementById('statResolvedTickets').textContent = userTickets.filter(t =>
+      t.status === 'Resolved' || t.status === 'Customer Marked as Resolved').length;
+    renderHistoryTable(userTickets);
+  }
+
+  function renderHistoryTable(tickets) {
+    const tbody = document.getElementById('historyTableBody');
+    if (!tickets.length) {
+      tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state" style="padding:3rem 0;">
+        <div class="empty-state__icon">🎫</div>
+        <div class="empty-state__title">No support history</div>
+        <p>This customer hasn't submitted any support requests yet.</p>
+      </div></td></tr>`;
+      return;
+    }
+    tbody.innerHTML = tickets.map(t => `
+      <tr>
+        <td class="text-muted text-sm">${formatTicketNumber(t.ticket_number, t.id)}</td>
+        <td class="ticket-table__subject">
+          <span class="ticket-table__subject-text">${escapeHtml(t.subject)}</span>
+          <div class="ticket-table__meta">${escapeHtml(t.category)}</div>
+        </td>
+        <td>${escapeHtml(t.category)}</td>
+        <td>${priorityBadge(t.priority)}</td>
+        <td>${statusBadge(t.status)}</td>
+        <td class="text-sm text-muted">${formatDate(t.created_at)}</td>
+        <td style="text-align:right;padding-right:1.5rem;">
+          <a href="ticket-detail.html?id=${t.id}" onclick="event.preventDefault();navigateTo('ticket-detail.html','${t.id}');"
+            class="btn btn--primary btn--sm" style="padding:0.3rem 0.75rem;font-size:0.75rem;display:inline-flex;align-items:center;gap:0.25rem;font-weight:600;text-transform:uppercase;letter-spacing:0.03em;">
+            Review &nbsp;→
+          </a>
+        </td>
+      </tr>`).join('');
+  }
+
+  // ── Suspend Modal ──────────────────────────────────────────────────────────
+  function openSuspendModal() {
+    if (!activeCustomerId) return;
+    const c = allCustomers.find(x => x.id === activeCustomerId);
+    if (!c) return;
+    document.getElementById('suspendTargetName').textContent = c.full_name || 'this customer';
+    document.getElementById('suspendReasonInput').value = '';
+    document.getElementById('suspendUntilInput').value  = '';
+    document.getElementById('suspendModalError').style.display = 'none';
+    document.getElementById('customDateGroup').style.display   = 'none';
+    document.getElementById('confirmSuspendBtn').disabled      = false;
+    document.getElementById('confirmSuspendBtn').textContent   = '⏸ Suspend Account';
+    document.querySelectorAll('.duration-option').forEach(b => b.classList.remove('selected'));
+    selectedDurationDays = null;
+    document.getElementById('suspendModal').classList.add('active');
+  }
+
+  function closeSuspendModal() {
+    document.getElementById('suspendModal').classList.remove('active');
+    selectedDurationDays = null;
+  }
+
+  function selectDuration(btn, value) {
+    document.querySelectorAll('.duration-option').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    selectedDurationDays = value;
+    const customGroup = document.getElementById('customDateGroup');
+    if (value === 'custom') {
+      customGroup.style.display = 'block';
+      const d = new Date(); d.setDate(d.getDate() + 1);
+      document.getElementById('suspendUntilInput').value = d.toISOString().slice(0, 16);
+    } else {
+      customGroup.style.display = 'none';
+    }
+  }
+</script>
+<script>
+  async function confirmSuspend() {
+    const reason  = document.getElementById('suspendReasonInput').value.trim();
+    const errorEl = document.getElementById('suspendModalError');
+    const btn     = document.getElementById('confirmSuspendBtn');
+    errorEl.style.display = 'none';
+
+    if (!reason) { errorEl.textContent = 'Please provide a reason for the suspension.'; errorEl.style.display = 'block'; return; }
+    if (!selectedDurationDays) { errorEl.textContent = 'Please select a suspension duration.'; errorEl.style.display = 'block'; return; }
+
+    let suspendUntil;
+    if (selectedDurationDays === 'custom') {
+      const val = document.getElementById('suspendUntilInput').value;
+      if (!val) { errorEl.textContent = 'Please pick a custom suspension date.'; errorEl.style.display = 'block'; return; }
+      if (new Date(val) <= new Date()) { errorEl.textContent = 'The suspension date must be in the future.'; errorEl.style.display = 'block'; return; }
+      suspendUntil = new Date(val).toISOString();
+    } else {
+      const d = new Date(); d.setDate(d.getDate() + parseInt(selectedDurationDays));
+      suspendUntil = d.toISOString();
+    }
+
+    btn.disabled = true; btn.textContent = 'Suspending…';
+    try {
+      const { error } = await supabaseClient.from('profiles').update({
+        suspended: true, suspension_reason: reason, suspension_until: suspendUntil
+      }).eq('id', activeCustomerId);
+      if (error) throw error;
+      const idx = allCustomers.findIndex(c => c.id === activeCustomerId);
+      if (idx !== -1) Object.assign(allCustomers[idx], { suspended: true, suspension_reason: reason, suspension_until: suspendUntil });
+      closeSuspendModal();
+      renderCustomerList(document.getElementById('customerSearch').value);
+      selectCustomer(activeCustomerId);
+      showToast('Account suspended successfully.', 'success');
+    } catch (err) {
+      // Detect missing column error and show a helpful migration message
+      const isMissingColumn = err.message && (
+        err.message.includes("suspended") ||
+        err.message.includes("schema cache") ||
+        err.message.includes("column")
+      );
+      if (isMissingColumn && !window.isDemoMode) {
+        errorEl.innerHTML = `
+          <strong>⚠️ Database migration required.</strong><br>
+          The <code>suspended</code> column is missing from your Supabase <code>profiles</code> table.<br><br>
+          Go to your <strong>Supabase Dashboard → SQL Editor</strong> and run:<br>
+          <code style="display:block;margin-top:0.5rem;padding:0.5rem;background:rgba(0,0,0,0.15);border-radius:6px;font-size:0.8rem;word-break:break-all;">
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS suspended boolean NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS suspension_reason text,
+  ADD COLUMN IF NOT EXISTS suspension_until timestamp with time zone,
+  ADD COLUMN IF NOT EXISTS pf_number text;
+          </code>
+          Then refresh this page and try again.`;
+      } else {
+        errorEl.textContent = err.message || 'Failed to suspend account.';
+      }
+      errorEl.style.display = 'block';
+      btn.disabled = false; btn.textContent = '⏸ Suspend Account';
+    }
+  }
+
+  async function liftSuspension() {
+    if (!activeCustomerId) return;
+    const btn = document.getElementById('liftSuspensionBtn');
+    btn.disabled = true; btn.textContent = 'Lifting…';
+    try {
+      const { error } = await supabaseClient.from('profiles').update({
+        suspended: false, suspension_reason: null, suspension_until: null
+      }).eq('id', activeCustomerId);
+      if (error) throw error;
+      const idx = allCustomers.findIndex(c => c.id === activeCustomerId);
+      if (idx !== -1) Object.assign(allCustomers[idx], { suspended: false, suspension_reason: null, suspension_until: null });
+      renderCustomerList(document.getElementById('customerSearch').value);
+      selectCustomer(activeCustomerId);
+      showToast('Suspension lifted successfully.', 'success');
+    } catch (err) {
+      showToast(err.message || 'Failed to lift suspension.', 'error');
+      btn.disabled = false; btn.textContent = '✓ Lift Suspension';
+    }
+  }
+
+  // ── Delete Customer Modal ──────────────────────────────────────────────────
+  function openDeleteCustomerModal() {
+    if (!activeCustomerId) return;
+    const c = allCustomers.find(x => x.id === activeCustomerId);
+    if (!c) return;
+    document.getElementById('deleteCustomerTargetName').textContent   = c.full_name || 'this customer';
+    document.getElementById('deleteCustomerConfirmInput').value       = '';
+    document.getElementById('deleteCustomerModalError').style.display = 'none';
+    document.getElementById('confirmDeleteCustomerBtn').disabled      = false;
+    document.getElementById('confirmDeleteCustomerBtn').textContent   = 'Delete Account';
+    document.getElementById('deleteCustomerModal').classList.add('active');
+  }
+
+  function closeDeleteCustomerModal() {
+    document.getElementById('deleteCustomerModal').classList.remove('active');
+  }
+
+  async function confirmDeleteCustomer() {
+    const confirmText = document.getElementById('deleteCustomerConfirmInput').value.trim();
+    const errorEl     = document.getElementById('deleteCustomerModalError');
+    const btn         = document.getElementById('confirmDeleteCustomerBtn');
+    errorEl.style.display = 'none';
+
+    if (confirmText !== 'DELETE') {
+      errorEl.textContent = 'Please type DELETE (in uppercase) to confirm.';
+      errorEl.style.display = 'block'; return;
+    }
+
+    btn.disabled = true; btn.textContent = 'Deleting…';
+    const customerId = activeCustomerId;
+
+    try {
+      if (window.isDemoMode) {
+        const tickets = JSON.parse(localStorage.getItem('db_tickets')) || [];
+        const userTicketIds = tickets.filter(t => t.user_id === customerId).map(t => t.id);
+        const replies = JSON.parse(localStorage.getItem('db_ticket_replies')) || [];
+        localStorage.setItem('db_ticket_replies', JSON.stringify(replies.filter(r => !userTicketIds.includes(r.ticket_id) && r.author_id !== customerId)));
+        localStorage.setItem('db_tickets', JSON.stringify(tickets.filter(t => t.user_id !== customerId)));
+        const creds = JSON.parse(localStorage.getItem('db_auth_credentials')) || [];
+        localStorage.setItem('db_auth_credentials', JSON.stringify(creds.filter(c => c.id !== customerId)));
+        const profiles = JSON.parse(localStorage.getItem('db_profiles')) || [];
+        localStorage.setItem('db_profiles', JSON.stringify(profiles.filter(p => p.id !== customerId)));
+      } else {
+        const { error } = await supabaseClient.from('profiles').delete().eq('id', customerId);
+        if (error) throw error;
+      }
+
+      allCustomers = allCustomers.filter(c => c.id !== customerId);
+      allTickets   = allTickets.filter(t => t.user_id !== customerId);
+      activeCustomerId = null;
+
+      closeDeleteCustomerModal();
+      renderCustomerList(document.getElementById('customerSearch').value);
+      document.getElementById('detailContent').style.display     = 'none';
+      document.getElementById('detailPlaceholder').style.display = 'flex';
+      document.getElementById('detailPlaceholder').style.opacity = '1';
+      showToast('Customer account deleted successfully.', 'success');
+    } catch (err) {
+      errorEl.textContent = err.message || 'Failed to delete account. Please try again.';
+      errorEl.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Delete Account';
+    }
+  }
+
+  // Modal backdrop close
+  document.getElementById('suspendModal').addEventListener('click', e => {
+    if (e.target === document.getElementById('suspendModal')) closeSuspendModal();
+  });
+  document.getElementById('deleteCustomerModal').addEventListener('click', e => {
+    if (e.target === document.getElementById('deleteCustomerModal')) closeDeleteCustomerModal();
+  });
+
+  // Hamburger
+  document.getElementById('hamburger').addEventListener('click', () => {
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('sidebarOverlay').classList.toggle('active');
+  });
+  document.getElementById('sidebarOverlay').addEventListener('click', () => {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebarOverlay').classList.remove('active');
+  });
+
+  document.getElementById('logoutBtn').addEventListener('click', logout);
+  init();
+</script>
+</body>
+</html>

@@ -324,3 +324,59 @@
   gap: 1rem;
   flex-wrap: wrap;
 }
+
+/* ══════════════════════════════════════════════════════════════
+   TICKETS RESPONSIVE
+   ══════════════════════════════════════════════════════════════ */
+
+/* Filters stack on mobile */
+@media (max-width: 639px) {
+  .filters { flex-direction: column; align-items: stretch; gap: 0.6rem; }
+  .filters__select,
+  .filters__search { width: 100%; min-width: unset; }
+}
+
+/* Table → cards switch */
+@media (max-width: 639px) {
+  .ticket-table-wrap { display: none; }
+  .ticket-cards      { display: block; }
+}
+@media (min-width: 640px) {
+  .ticket-table-wrap { display: block; }
+  .ticket-cards      { display: none; }
+}
+
+/* Ticket detail */
+@media (max-width: 639px) {
+  .ticket-detail { gap: 1rem; }
+  .ticket-detail__header,
+  .ticket-detail__description,
+  .reply-form,
+  .status-update { padding: 1.25rem; }
+  .ticket-detail__title { font-size: 1.15rem; }
+  .ticket-detail__meta  { flex-direction: column; align-items: flex-start; gap: 0.4rem; }
+  .reply { padding: 1rem; gap: 0.75rem; }
+  .reply__avatar { width: 34px; height: 34px; font-size: 0.8rem; }
+  .reply__time   { display: none; }
+  .reply__message { font-size: 0.85rem; }
+  .replies__header { padding: 1rem 1.25rem; }
+  .status-update__row { flex-direction: column; align-items: stretch; }
+}
+
+/* Ticket cards — tighter on very small screens */
+@media (max-width: 360px) {
+  .ticket-card { padding: 0.875rem; }
+  .ticket-card__subject { font-size: 0.875rem; }
+}
+
+/* Table column hiding on mid-size screens */
+@media (min-width: 640px) and (max-width: 899px) {
+  .ticket-table th:nth-child(3),
+  .ticket-table td:nth-child(3) { display: none; }
+  .ticket-table th:nth-child(4),
+  .ticket-table td:nth-child(4) { display: none; }
+}
+@media (min-width: 900px) and (max-width: 1023px) {
+  .ticket-table th:nth-child(4),
+  .ticket-table td:nth-child(4) { display: none; }
+}

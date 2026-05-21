@@ -149,4 +149,28 @@
   color: var(--text-light);
   margin-top: 0.5rem;
   font-weight: 500;
+  padding: 0 1rem;
+  line-height: 1.6;
+}
+
+/* ── Auth responsive ────────────────────────────────────────── */
+@media (max-width: 639px) {
+  .auth-page {
+    padding: 1.25rem 1rem;
+    justify-content: flex-start;
+    padding-top: 2rem;
+  }
+  .auth-card {
+    max-width: 100%;
+    border-radius: 14px;
+  }
+  .auth-brand-logo img {
+    max-width: 200px;
+  }
+}
+
+@media (max-width: 360px) {
+  .auth-card { padding: 1.5rem 1rem; }
+  .auth-title { font-size: 1.2rem; }
+  .auth-subtitle { font-size: 0.8rem; }
 }

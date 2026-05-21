@@ -291,3 +291,54 @@
   z-index: 99;
 }
 .sidebar-overlay.active { display: block; }
+
+/* ══════════════════════════════════════════════════════════════
+   DASHBOARD RESPONSIVE
+   ══════════════════════════════════════════════════════════════ */
+
+/* Sidebar hidden off-screen on mobile/tablet */
+@media (max-width: 1023px) {
+  .sidebar {
+    transform: translateX(-100%);
+    z-index: 200;
+    width: min(var(--sidebar-w), 85vw);
+  }
+  .sidebar.open { transform: translateX(0); }
+  .main { margin-left: 0; }
+  .hamburger { display: flex; }
+}
+
+/* Header padding adjustments */
+@media (max-width: 639px) {
+  .header {
+    padding: 0 1rem;
+    gap: 0.5rem;
+  }
+  .header__title    { font-size: 1rem; }
+  .header__subtitle { display: none; }
+  /* Shrink action button in header */
+  .header .btn--sm  { padding: 0.4rem 0.7rem; font-size: 0.75rem; }
+}
+
+/* Stats grid */
+@media (max-width: 479px) {
+  .stats-grid { grid-template-columns: 1fr; }
+}
+@media (min-width: 480px) and (max-width: 767px) {
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .stats-grid .stat-card:nth-child(3):last-child { grid-column: 1 / -1; }
+}
+@media (min-width: 768px) {
+  .stats-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* Content padding */
+@media (max-width: 479px)  { .content { padding: 1rem 0.875rem; } }
+@media (min-width: 480px) and (max-width: 639px) { .content { padding: 1.25rem; } }
+@media (min-width: 640px) and (max-width: 1023px) { .content { padding: 1.5rem; } }
+
+/* Sidebar footer — tighten on narrow sidebar */
+@media (max-width: 320px) {
+  .sidebar__logout { display: none; }
+  .sidebar__user-name { font-size: 0.75rem; }
+}

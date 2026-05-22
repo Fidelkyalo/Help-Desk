@@ -254,3 +254,45 @@ create policy "Admins can delete customer profiles"
   to authenticated
   using (is_admin() and id != auth.uid());
 
+-- ────────────────────────────────────────────────────────────────────────────
+-- 9. PASSWORD RESET REQUESTS TABLE
+-- ────────────────────────────────────────────────────────────────────────────
+-- Stores requests from customers who failed security questions and need
+-- an admin to manually reset their password.
+
+create table if not exists public.password_reset_requests (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references public.profiles(id) on delete cascade not null unique,
+  email text not null,
+  full_name text,
+  status text not null default 'pending' check (status in ('pending', 'resolved', 'dismissed')),
+  created_at timestamp with time zone not null default timezone('utc'::text, now())
+);
+
+-- Enable RLS
+alter table public.password_reset_requests enable row level security;
+
+-- Admins can read all requests
+create policy "Admins can read password reset requests"
+  on public.password_reset_requests for select
+  to authenticated
+  using (is_admin());
+
+-- Admins can update (resolve/dismiss) requests
+create policy "Admins can update password reset requests"
+  on public.password_reset_requests for update
+  to authenticated
+  using (is_admin())
+  with check (is_admin());
+
+-- Any authenticated user can insert their own request
+create policy "Users can submit their own password reset request"
+  on public.password_reset_requests for insert
+  to authenticated
+  with check (auth.uid() = user_id);
+
+-- Add temp_password columns to profiles for admin-set passwords
+alter table public.profiles
+  add column if not exists temp_password text,
+  add column if not exists temp_password_set_at timestamp with time zone;
+

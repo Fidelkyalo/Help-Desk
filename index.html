@@ -200,11 +200,12 @@
   <div class="fp-overlay" id="fpOverlay" role="dialog" aria-modal="true" aria-label="Reset password">
     <div class="fp-box" id="fpBox">
 
-      <!-- Progress dots (3 steps) -->
+      <!-- Progress dots (4 steps) -->
       <div class="fp-progress">
         <div class="fp-progress-dot done" id="fpDot1"></div>
         <div class="fp-progress-dot"      id="fpDot2"></div>
         <div class="fp-progress-dot"      id="fpDot3"></div>
+        <div class="fp-progress-dot"      id="fpDot4"></div>
       </div>
 
       <!-- ── Step 1: Email ── -->
@@ -233,15 +234,51 @@
         <div class="fp-title">Answer your security questions</div>
         <div class="fp-subtitle">Answer all 5 questions exactly as you set them up. Answers are not case-sensitive.</div>
 
+        <!-- Attempt counter badge -->
+        <div id="fpAttemptBadge" style="display:none;background:var(--warning-light);border:1px solid rgba(180,83,9,0.3);border-radius:8px;padding:0.5rem 0.85rem;font-size:0.8rem;font-weight:600;color:var(--warning);margin-bottom:0.85rem;">
+          ⚠️ Incorrect — <span id="fpAttemptsLeft">1</span> attempt remaining
+        </div>
+
         <div class="fp-wrong-banner" id="fpWrongBanner">
           ❌ One or more answers are incorrect. Please check your answers and try again.
         </div>
 
         <div id="fpQuestionsContainer"></div>
 
-        <div class="fp-actions">
+        <!-- Normal action buttons (shown while attempts remain) -->
+        <div class="fp-actions" id="fpStep2Actions">
           <button class="btn btn--primary" id="fpStep2Btn">Verify Answers →</button>
           <button class="btn btn--secondary" onclick="closeFpModal()">Cancel</button>
+        </div>
+
+        <!-- Lockout panel (shown after 2 failed attempts) -->
+        <div id="fpLockoutPanel" style="display:none;margin-top:1rem;">
+          <div style="background:var(--danger-light);border:1px solid rgba(220,38,38,0.3);border-radius:12px;padding:1.1rem 1.2rem;margin-bottom:1rem;text-align:center;">
+            <div style="font-size:1.5rem;margin-bottom:0.4rem;">🔒</div>
+            <div style="font-weight:700;color:var(--danger);font-size:0.9rem;margin-bottom:0.3rem;">Too many incorrect attempts</div>
+            <div style="font-size:0.8rem;color:var(--text-muted);line-height:1.55;">You've used both attempts. You can try again or ask an admin to reset your password for you.</div>
+          </div>
+          <div class="fp-actions" style="flex-direction:column;gap:0.6rem;">
+            <button class="btn btn--secondary" onclick="fpRetryAnswers()" style="width:100%;">🔄 Try Again</button>
+            <button class="btn btn--primary" id="fpRequestAdminBtn" onclick="fpRequestAdminReset()" style="width:100%;">📩 Request Admin Password Reset</button>
+          </div>
+          <div style="text-align:center;margin-top:0.75rem;">
+            <button class="btn btn--secondary" onclick="closeFpModal()" style="font-size:0.8rem;padding:0.4rem 1rem;">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Step 4: Admin reset request sent ── -->
+      <div class="fp-step" id="fpStep4">
+        <span class="fp-icon">📬</span>
+        <div class="fp-title">Request sent to admin</div>
+        <div class="fp-subtitle">Your password reset request has been submitted. An administrator will reset your password and notify you. Please check back later or contact support directly.</div>
+        <div style="background:var(--success-light);border:1px solid rgba(5,150,105,0.3);border-radius:12px;padding:1.1rem 1.2rem;margin-bottom:1.25rem;text-align:center;">
+          <div style="font-size:1.5rem;margin-bottom:0.35rem;">✅</div>
+          <div style="font-weight:600;color:var(--success);font-size:0.875rem;">Request submitted successfully</div>
+        </div>
+        <div class="fp-actions">
+          <button class="btn btn--primary" onclick="closeFpModal()" style="width:100%;">Close</button>
         </div>
       </div>
 
@@ -337,14 +374,22 @@
     });
 
     // ── Forgot Password Modal ─────────────────────────────────
-    let fpUserId   = null;  // resolved after step 1
-    let fpStored   = null;  // stored questions array
+    let fpUserId      = null;   // resolved after step 1
+    let fpStored      = null;   // stored questions array
+    let fpEmail       = null;   // email resolved in step 1
+    let fpFullName    = null;   // full name resolved in step 1
+    let fpAttempts    = 0;      // wrong answer attempt counter (max 2)
+    const FP_MAX_ATTEMPTS = 2;
 
     function openFpModal() {
-      fpUserId = null;
-      fpStored = null;
+      fpUserId   = null;
+      fpStored   = null;
+      fpEmail    = null;
+      fpFullName = null;
+      fpAttempts = 0;
+
       // Reset all steps
-      ['fpStep1','fpStep2','fpStep3'].forEach((id,i) => {
+      ['fpStep1','fpStep2','fpStep3','fpStep4'].forEach((id,i) => {
         document.getElementById(id).classList.toggle('active', i === 0);
       });
       setFpDots(1);
@@ -352,7 +397,12 @@
       document.getElementById('fpEmailError').classList.remove('show');
       document.getElementById('fpEmailFieldError').textContent = '';
       document.getElementById('fpWrongBanner').classList.remove('show');
+      document.getElementById('fpAttemptBadge').style.display = 'none';
       document.getElementById('fpQuestionsContainer').innerHTML = '';
+      document.getElementById('fpStep2Actions').style.display  = 'flex';
+      document.getElementById('fpLockoutPanel').style.display  = 'none';
+      document.getElementById('fpStep2Btn').disabled = false;
+      document.getElementById('fpStep2Btn').textContent = 'Verify Answers →';
       document.getElementById('fpNewPwd').value = '';
       document.getElementById('fpConfirmPwd').value = '';
       document.getElementById('fpPwdError').classList.remove('show');
@@ -367,17 +417,16 @@
     }
 
     function setFpDots(activeStep) {
-      for (let i = 1; i <= 3; i++) {
+      for (let i = 1; i <= 4; i++) {
         document.getElementById('fpDot' + i).classList.toggle('done', i <= activeStep);
       }
     }
 
     function goFpStep(n) {
-      ['fpStep1','fpStep2','fpStep3'].forEach((id,i) => {
+      ['fpStep1','fpStep2','fpStep3','fpStep4'].forEach((id,i) => {
         document.getElementById(id).classList.toggle('active', i + 1 === n);
       });
       setFpDots(n);
-      // Scroll modal to top
       document.getElementById('fpBox').scrollTop = 0;
     }
 
@@ -395,13 +444,13 @@
 
     // ── Step 1: look up email ─────────────────────────────────
     document.getElementById('fpStep1Btn').addEventListener('click', async () => {
-      const email = document.getElementById('fpEmail').value.trim();
+      const emailVal  = document.getElementById('fpEmail').value.trim();
       const errBanner = document.getElementById('fpEmailError');
       const errField  = document.getElementById('fpEmailFieldError');
       errBanner.classList.remove('show');
       errField.textContent = '';
 
-      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      if (!emailVal || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) {
         errField.textContent = 'Please enter a valid email address.';
         return;
       }
@@ -411,15 +460,18 @@
       btn.textContent = 'Looking up…';
 
       try {
-        const result = await getSecurityQuestionsByEmail(email);
+        const result = await getSecurityQuestionsByEmail(emailVal);
         if (!result || !result.questions || result.questions.length === 0) {
           errBanner.classList.add('show');
           btn.disabled = false;
           btn.textContent = 'Continue →';
           return;
         }
-        fpUserId = result.id;
-        fpStored = result.questions;
+        fpUserId   = result.id;
+        fpStored   = result.questions;
+        fpEmail    = emailVal;
+        fpFullName = result.full_name || '';
+        fpAttempts = 0;
 
         // Build the answer inputs for step 2
         const container = document.getElementById('fpQuestionsContainer');
@@ -435,7 +487,6 @@
         btn.disabled = false;
         btn.textContent = 'Continue →';
         goFpStep(2);
-        // Focus first answer
         const first = document.getElementById('fpAns0');
         if (first) first.focus();
       } catch (err) {
@@ -467,9 +518,9 @@
 
       const correct = verifySecurityAnswers(fpStored, submitted);
       if (!correct) {
-        wrongBanner.textContent = '❌ One or more answers are incorrect. Please check your answers and try again.';
-        wrongBanner.classList.add('show');
-        // Shake the wrong inputs
+        fpAttempts++;
+
+        // Highlight wrong inputs
         fpStored.forEach((item, i) => {
           const el = document.getElementById('fpAns' + i);
           if (!el) return;
@@ -477,18 +528,67 @@
           if (norm !== item.answer) {
             el.style.borderColor = 'var(--danger)';
             el.style.boxShadow   = '0 0 0 3px rgba(220,38,38,0.15)';
-            setTimeout(() => {
-              el.style.borderColor = '';
-              el.style.boxShadow   = '';
-            }, 2500);
+            setTimeout(() => { el.style.borderColor = ''; el.style.boxShadow = ''; }, 2500);
           }
         });
+
+        if (fpAttempts >= FP_MAX_ATTEMPTS) {
+          // Lock out — show the lockout panel
+          wrongBanner.classList.remove('show');
+          document.getElementById('fpAttemptBadge').style.display = 'none';
+          document.getElementById('fpStep2Actions').style.display = 'none';
+          document.getElementById('fpLockoutPanel').style.display = 'block';
+        } else {
+          // First wrong attempt — show attempt badge
+          const left = FP_MAX_ATTEMPTS - fpAttempts;
+          document.getElementById('fpAttemptsLeft').textContent = left;
+          document.getElementById('fpAttemptBadge').style.display = 'block';
+          wrongBanner.textContent = '❌ One or more answers are incorrect. Please check your answers and try again.';
+          wrongBanner.classList.add('show');
+        }
         return;
       }
 
       goFpStep(3);
       document.getElementById('fpNewPwd').focus();
     });
+
+    // ── Step 2: Retry (reset attempt counter, clear inputs) ──
+    function fpRetryAnswers() {
+      fpAttempts = 0;
+      document.getElementById('fpLockoutPanel').style.display  = 'none';
+      document.getElementById('fpStep2Actions').style.display  = 'flex';
+      document.getElementById('fpAttemptBadge').style.display  = 'none';
+      document.getElementById('fpWrongBanner').classList.remove('show');
+      document.getElementById('fpStep2Btn').disabled = false;
+      document.getElementById('fpStep2Btn').textContent = 'Verify Answers →';
+      // Clear all answer inputs
+      if (fpStored) {
+        fpStored.forEach((_, i) => {
+          const el = document.getElementById('fpAns' + i);
+          if (el) { el.value = ''; el.style.borderColor = ''; el.style.boxShadow = ''; }
+        });
+      }
+      const first = document.getElementById('fpAns0');
+      if (first) first.focus();
+    }
+
+    // ── Step 2: Request admin reset ───────────────────────────
+    async function fpRequestAdminReset() {
+      const btn = document.getElementById('fpRequestAdminBtn');
+      btn.disabled = true;
+      btn.textContent = 'Sending…';
+      try {
+        await submitPasswordResetRequest(fpUserId, fpEmail, fpFullName);
+        goFpStep(4);
+      } catch (err) {
+        btn.disabled = false;
+        btn.textContent = '📩 Request Admin Password Reset';
+        const wrongBanner = document.getElementById('fpWrongBanner');
+        wrongBanner.textContent = '⚠️ ' + (err.message || 'Failed to send request. Please try again.');
+        wrongBanner.classList.add('show');
+      }
+    }
 
     // ── Step 3: save new password ─────────────────────────────
     document.getElementById('fpStep3Btn').addEventListener('click', async () => {
@@ -517,7 +617,6 @@
       try {
         await resetPasswordWithQuestions(fpUserId, newPwd);
         closeFpModal();
-        // Show success on the login page
         const alertEl = document.getElementById('alert');
         alertEl.className = 'auth-alert auth-alert--success';
         alertEl.textContent = '✅ Password reset successfully! You can now sign in with your new password.';

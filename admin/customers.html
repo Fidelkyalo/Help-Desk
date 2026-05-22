@@ -261,6 +261,19 @@
     </header>
 
     <main class="content">
+
+      <!-- ── Password Reset Requests Banner ─────────────────── -->
+      <div id="pwdResetBanner" style="display:none;background:var(--warning-light);border:1px solid rgba(180,83,9,0.3);border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:1.5rem;display:none;align-items:center;gap:1rem;flex-wrap:wrap;">
+        <div style="font-size:1.5rem;">🔑</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:700;color:var(--warning);font-size:0.9rem;">Password Reset Requests</div>
+          <div style="font-size:0.8rem;color:var(--text-muted);margin-top:0.15rem;">
+            <span id="pwdResetCount">0</span> customer(s) are waiting for an admin password reset.
+          </div>
+        </div>
+        <button class="btn btn--warning btn--sm" onclick="openPwdResetModal()">View Requests →</button>
+      </div>
+
       <div class="directory-layout">
 
         <!-- Left Panel -->
@@ -319,6 +332,7 @@
 
             <div class="admin-actions-bar">
               <button class="btn btn--warning btn--sm" id="suspendCustomerBtn" onclick="openSuspendModal()">⏸ Suspend Account</button>
+              <button class="btn btn--success btn--sm" onclick="openChangePasswordModal()">🔑 Change Password</button>
               <button class="btn btn--danger btn--sm" onclick="openDeleteCustomerModal()">🗑 Delete Account</button>
             </div>
 
@@ -435,6 +449,87 @@
   </div>
 </div>
 
+<!-- Change Password Modal (admin sets password for a specific customer) -->
+<div class="modal-overlay" id="changePasswordModal">
+  <div class="modal-box">
+    <div style="margin-bottom:1.25rem;">
+      <div style="font-size:2rem;margin-bottom:0.5rem;">🔑</div>
+      <div class="modal-box__title">Change Customer Password</div>
+      <div class="modal-box__subtitle">
+        Set a new password for <strong id="changePwdTargetName"></strong>. They will be able to log in with this password immediately.
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">New Password <span style="color:var(--danger);">*</span></label>
+      <div class="password-wrapper">
+        <input type="password" class="modal-input" id="adminNewPwdInput" placeholder="Min. 8 characters" autocomplete="new-password" />
+        <button type="button" class="password-toggle" onclick="toggleModalPwd('adminNewPwdInput',this)" aria-label="Toggle">👁</button>
+      </div>
+    </div>
+    <div class="form-group" style="margin-top:0.75rem;">
+      <label class="form-label">Confirm Password <span style="color:var(--danger);">*</span></label>
+      <div class="password-wrapper">
+        <input type="password" class="modal-input" id="adminConfirmPwdInput" placeholder="Re-type new password" autocomplete="new-password" />
+        <button type="button" class="password-toggle" onclick="toggleModalPwd('adminConfirmPwdInput',this)" aria-label="Toggle">👁</button>
+      </div>
+    </div>
+    <div class="modal-error" id="changePwdModalError"></div>
+    <div class="modal-actions">
+      <button class="btn btn--primary" id="confirmChangePwdBtn" style="flex:1;" onclick="confirmChangePassword()">🔑 Set Password</button>
+      <button class="btn btn--secondary" style="flex:1;" onclick="closeChangePasswordModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Password Reset Requests Modal -->
+<div class="modal-overlay" id="pwdResetModal">
+  <div class="modal-box" style="max-width:600px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;gap:1rem;">
+      <div>
+        <div style="font-size:1.75rem;margin-bottom:0.25rem;">📬</div>
+        <div class="modal-box__title" style="margin-bottom:0;">Password Reset Requests</div>
+      </div>
+      <button class="btn btn--secondary btn--sm" onclick="closePwdResetModal()">✕ Close</button>
+    </div>
+    <div class="modal-box__subtitle" style="margin-bottom:1.25rem;">
+      Customers who failed their security questions twice and requested admin assistance.
+    </div>
+    <div id="pwdResetRequestsList">
+      <div style="text-align:center;padding:2rem;"><div class="spinner" style="margin:0 auto;"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Inline Set-Password panel inside the requests modal -->
+<div class="modal-overlay" id="inlineSetPwdModal">
+  <div class="modal-box">
+    <div style="margin-bottom:1.25rem;">
+      <div style="font-size:2rem;margin-bottom:0.5rem;">🔐</div>
+      <div class="modal-box__title">Set Password for <span id="inlineSetPwdName"></span></div>
+      <div class="modal-box__subtitle">Enter a new password for this customer. They can log in with it right away.</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">New Password <span style="color:var(--danger);">*</span></label>
+      <div class="password-wrapper">
+        <input type="password" class="modal-input" id="inlineNewPwdInput" placeholder="Min. 8 characters" autocomplete="new-password" />
+        <button type="button" class="password-toggle" onclick="toggleModalPwd('inlineNewPwdInput',this)" aria-label="Toggle">👁</button>
+      </div>
+    </div>
+    <div class="form-group" style="margin-top:0.75rem;">
+      <label class="form-label">Confirm Password <span style="color:var(--danger);">*</span></label>
+      <div class="password-wrapper">
+        <input type="password" class="modal-input" id="inlineConfirmPwdInput" placeholder="Re-type new password" autocomplete="new-password" />
+        <button type="button" class="password-toggle" onclick="toggleModalPwd('inlineConfirmPwdInput',this)" aria-label="Toggle">👁</button>
+      </div>
+    </div>
+    <div class="modal-error" id="inlineSetPwdError"></div>
+    <div class="modal-actions">
+      <button class="btn btn--primary" id="confirmInlineSetPwdBtn" style="flex:1;" onclick="confirmInlineSetPassword()">🔐 Set Password</button>
+      <button class="btn btn--secondary" style="flex:1;" onclick="closeInlineSetPwdModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../js/supabase-client.js"></script>
 <script src="../js/utils.js"></script>
@@ -462,6 +557,7 @@
       document.getElementById('userAvatar').textContent = n[0].toUpperCase();
     }
     await loadData();
+    await loadPwdResetRequests();
     document.getElementById('customerSearch').addEventListener('input', (e) => {
       renderCustomerList(e.target.value);
     });
@@ -831,6 +927,173 @@ ALTER TABLE public.profiles
   document.getElementById('deleteCustomerModal').addEventListener('click', e => {
     if (e.target === document.getElementById('deleteCustomerModal')) closeDeleteCustomerModal();
   });
+  document.getElementById('changePasswordModal').addEventListener('click', e => {
+    if (e.target === document.getElementById('changePasswordModal')) closeChangePasswordModal();
+  });
+  document.getElementById('pwdResetModal').addEventListener('click', e => {
+    if (e.target === document.getElementById('pwdResetModal')) closePwdResetModal();
+  });
+  document.getElementById('inlineSetPwdModal').addEventListener('click', e => {
+    if (e.target === document.getElementById('inlineSetPwdModal')) closeInlineSetPwdModal();
+  });
+
+  // ── Change Password Modal (direct, from customer detail) ──────────────────
+  function openChangePasswordModal() {
+    if (!activeCustomerId) return;
+    const c = allCustomers.find(x => x.id === activeCustomerId);
+    if (!c) return;
+    document.getElementById('changePwdTargetName').textContent = c.full_name || 'this customer';
+    document.getElementById('adminNewPwdInput').value    = '';
+    document.getElementById('adminConfirmPwdInput').value = '';
+    document.getElementById('changePwdModalError').style.display = 'none';
+    document.getElementById('confirmChangePwdBtn').disabled    = false;
+    document.getElementById('confirmChangePwdBtn').textContent = '🔑 Set Password';
+    document.getElementById('changePasswordModal').classList.add('active');
+    setTimeout(() => document.getElementById('adminNewPwdInput').focus(), 100);
+  }
+
+  function closeChangePasswordModal() {
+    document.getElementById('changePasswordModal').classList.remove('active');
+  }
+
+  function toggleModalPwd(inputId, btn) {
+    const el = document.getElementById(inputId);
+    el.type = el.type === 'password' ? 'text' : 'password';
+  }
+
+  async function confirmChangePassword() {
+    const newPwd     = document.getElementById('adminNewPwdInput').value;
+    const confirmPwd = document.getElementById('adminConfirmPwdInput').value;
+    const errorEl    = document.getElementById('changePwdModalError');
+    const btn        = document.getElementById('confirmChangePwdBtn');
+    errorEl.style.display = 'none';
+
+    if (newPwd.length < 8) { errorEl.textContent = 'Password must be at least 8 characters.'; errorEl.style.display = 'block'; return; }
+    if (newPwd !== confirmPwd) { errorEl.textContent = 'Passwords do not match.'; errorEl.style.display = 'block'; return; }
+
+    btn.disabled = true; btn.textContent = 'Setting…';
+    try {
+      await adminSetCustomerPassword(activeCustomerId, newPwd);
+      closeChangePasswordModal();
+      showToast('Password updated successfully.', 'success');
+    } catch (err) {
+      errorEl.textContent = err.message || 'Failed to update password.';
+      errorEl.style.display = 'block';
+      btn.disabled = false; btn.textContent = '🔑 Set Password';
+    }
+  }
+
+  // ── Password Reset Requests Modal ──────────────────────────────────────────
+  let pendingResetRequests = [];
+  let inlineTargetUserId   = null;
+
+  async function loadPwdResetRequests() {
+    try {
+      pendingResetRequests = await fetchPasswordResetRequests();
+      // Update banner
+      const banner = document.getElementById('pwdResetBanner');
+      const countEl = document.getElementById('pwdResetCount');
+      if (pendingResetRequests.length > 0) {
+        countEl.textContent = pendingResetRequests.length;
+        banner.style.display = 'flex';
+      } else {
+        banner.style.display = 'none';
+      }
+    } catch (e) {
+      console.error('Failed to load password reset requests:', e);
+    }
+  }
+
+  async function openPwdResetModal() {
+    document.getElementById('pwdResetModal').classList.add('active');
+    renderPwdResetRequests();
+  }
+
+  function closePwdResetModal() {
+    document.getElementById('pwdResetModal').classList.remove('active');
+  }
+
+  function renderPwdResetRequests() {
+    const listEl = document.getElementById('pwdResetRequestsList');
+    if (!pendingResetRequests.length) {
+      listEl.innerHTML = `<div style="text-align:center;padding:2rem 1rem;">
+        <div style="font-size:2.5rem;margin-bottom:0.75rem;">✅</div>
+        <div style="font-weight:600;color:var(--text);margin-bottom:0.35rem;">No pending requests</div>
+        <div style="font-size:0.85rem;color:var(--text-muted);">All password reset requests have been handled.</div>
+      </div>`;
+      return;
+    }
+    listEl.innerHTML = pendingResetRequests.map(r => `
+      <div style="display:flex;align-items:center;gap:1rem;padding:1rem;border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:0.75rem;background:var(--surface);flex-wrap:wrap;">
+        <div style="width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#f59e0b,#d97706);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:1.1rem;flex-shrink:0;">
+          ${(r.full_name || r.email || '?')[0].toUpperCase()}
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:600;color:var(--text);font-size:0.95rem;">${escapeHtml(r.full_name || 'Unknown')}</div>
+          <div style="font-size:0.78rem;color:var(--text-muted);">${escapeHtml(r.email)}</div>
+          <div style="font-size:0.75rem;color:var(--text-light);margin-top:0.2rem;">Requested ${formatDate(r.created_at)}</div>
+        </div>
+        <div style="display:flex;gap:0.5rem;flex-shrink:0;">
+          <button class="btn btn--primary btn--sm" onclick="openInlineSetPwd('${r.user_id}','${escapeHtml(r.full_name || r.email)}')">🔑 Set Password</button>
+          <button class="btn btn--secondary btn--sm" onclick="handleDismissRequest('${r.user_id}')">Dismiss</button>
+        </div>
+      </div>`).join('');
+  }
+
+  function openInlineSetPwd(userId, name) {
+    inlineTargetUserId = userId;
+    document.getElementById('inlineSetPwdName').textContent = name;
+    document.getElementById('inlineNewPwdInput').value     = '';
+    document.getElementById('inlineConfirmPwdInput').value = '';
+    document.getElementById('inlineSetPwdError').style.display = 'none';
+    document.getElementById('confirmInlineSetPwdBtn').disabled    = false;
+    document.getElementById('confirmInlineSetPwdBtn').textContent = '🔐 Set Password';
+    document.getElementById('inlineSetPwdModal').classList.add('active');
+    setTimeout(() => document.getElementById('inlineNewPwdInput').focus(), 100);
+  }
+
+  function closeInlineSetPwdModal() {
+    document.getElementById('inlineSetPwdModal').classList.remove('active');
+    inlineTargetUserId = null;
+  }
+
+  async function confirmInlineSetPassword() {
+    const newPwd     = document.getElementById('inlineNewPwdInput').value;
+    const confirmPwd = document.getElementById('inlineConfirmPwdInput').value;
+    const errorEl    = document.getElementById('inlineSetPwdError');
+    const btn        = document.getElementById('confirmInlineSetPwdBtn');
+    errorEl.style.display = 'none';
+
+    if (newPwd.length < 8) { errorEl.textContent = 'Password must be at least 8 characters.'; errorEl.style.display = 'block'; return; }
+    if (newPwd !== confirmPwd) { errorEl.textContent = 'Passwords do not match.'; errorEl.style.display = 'block'; return; }
+
+    btn.disabled = true; btn.textContent = 'Setting…';
+    try {
+      await adminSetCustomerPassword(inlineTargetUserId, newPwd);
+      // Remove from local list
+      pendingResetRequests = pendingResetRequests.filter(r => r.user_id !== inlineTargetUserId);
+      closeInlineSetPwdModal();
+      renderPwdResetRequests();
+      await loadPwdResetRequests();
+      showToast('Password set successfully. Request resolved.', 'success');
+    } catch (err) {
+      errorEl.textContent = err.message || 'Failed to set password.';
+      errorEl.style.display = 'block';
+      btn.disabled = false; btn.textContent = '🔐 Set Password';
+    }
+  }
+
+  async function handleDismissRequest(userId) {
+    try {
+      await dismissPasswordResetRequest(userId);
+      pendingResetRequests = pendingResetRequests.filter(r => r.user_id !== userId);
+      renderPwdResetRequests();
+      await loadPwdResetRequests();
+      showToast('Request dismissed.', 'info');
+    } catch (err) {
+      showToast(err.message || 'Failed to dismiss request.', 'error');
+    }
+  }
 
   // Hamburger
   document.getElementById('hamburger').addEventListener('click', () => {

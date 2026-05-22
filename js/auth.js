@@ -351,11 +351,11 @@ async function saveSecurityQuestions(userId, answers) {
 async function getSecurityQuestionsByEmail(email) {
   const { data, error } = await supabaseClient
     .from('profiles')
-    .select('id, security_questions')
+    .select('id, full_name, security_questions')
     .eq('email', email)
     .single();
   if (error || !data) return null;
-  return { id: data.id, questions: data.security_questions || [] };
+  return { id: data.id, full_name: data.full_name || '', questions: data.security_questions || [] };
 }
 
 // ── Security Questions — Verify Answers ──────────────────────
@@ -399,6 +399,97 @@ async function resetPasswordWithQuestions(userId, newPassword) {
     .eq('id', userId);
   if (error) throw error;
   return token; // caller will redirect to reset-password.html?token=…&uid=…
+}
+
+// ── Password Reset Request (for admin to fulfil) ─────────────
+// Called when a customer fails security questions twice and chooses
+// to ask the admin to reset their password instead.
+async function submitPasswordResetRequest(userId, email, fullName) {
+  if (window.isDemoMode) {
+    const requests = JSON.parse(localStorage.getItem('db_password_reset_requests')) || [];
+    // Remove any existing pending request for this user first
+    const filtered = requests.filter(r => r.user_id !== userId);
+    filtered.push({
+      id: crypto.randomUUID(),
+      user_id: userId,
+      email,
+      full_name: fullName,
+      status: 'pending',
+      created_at: new Date().toISOString()
+    });
+    localStorage.setItem('db_password_reset_requests', JSON.stringify(filtered));
+    return;
+  }
+  // Live Supabase — upsert so duplicate requests don't pile up
+  const { error } = await supabaseClient
+    .from('password_reset_requests')
+    .upsert(
+      { user_id: userId, email, full_name: fullName, status: 'pending', created_at: new Date().toISOString() },
+      { onConflict: 'user_id' }
+    );
+  if (error) throw error;
+}
+
+// ── Fetch Pending Password Reset Requests (admin only) ───────
+async function fetchPasswordResetRequests() {
+  if (window.isDemoMode) {
+    const requests = JSON.parse(localStorage.getItem('db_password_reset_requests')) || [];
+    return requests.filter(r => r.status === 'pending');
+  }
+  const { data, error } = await supabaseClient
+    .from('password_reset_requests')
+    .select('*')
+    .eq('status', 'pending')
+    .order('created_at', { ascending: true });
+  if (error) throw error;
+  return data || [];
+}
+
+// ── Admin: Set New Password for Customer ─────────────────────
+// In demo mode updates the credential directly.
+// In live Supabase, stores a temporary password on the profile that
+// the customer uses to log in once, then is prompted to change it.
+async function adminSetCustomerPassword(userId, newPassword) {
+  if (window.isDemoMode) {
+    const creds = JSON.parse(localStorage.getItem('db_auth_credentials')) || [];
+    const idx = creds.findIndex(c => c.id === userId);
+    if (idx !== -1) {
+      creds[idx].password = newPassword;
+      localStorage.setItem('db_auth_credentials', JSON.stringify(creds));
+    }
+    // Mark request as resolved
+    const requests = JSON.parse(localStorage.getItem('db_password_reset_requests')) || [];
+    const ri = requests.findIndex(r => r.user_id === userId);
+    if (ri !== -1) {
+      requests[ri].status = 'resolved';
+      localStorage.setItem('db_password_reset_requests', JSON.stringify(requests));
+    }
+    return;
+  }
+  // Live Supabase: store a temporary password on the profile row.
+  // The customer logs in with this temp password and is then prompted
+  // to set a permanent one (handled in dashboard init).
+  const { error } = await supabaseClient
+    .from('profiles')
+    .update({ temp_password: newPassword, temp_password_set_at: new Date().toISOString() })
+    .eq('id', userId);
+  if (error) throw error;
+  // Mark request resolved
+  await supabaseClient
+    .from('password_reset_requests')
+    .update({ status: 'resolved' })
+    .eq('user_id', userId);
+}
+
+// ── Admin: Dismiss Password Reset Request ────────────────────
+async function dismissPasswordResetRequest(userId) {
+  if (window.isDemoMode) {
+    const requests = JSON.parse(localStorage.getItem('db_password_reset_requests')) || [];
+    const ri = requests.findIndex(r => r.user_id === userId);
+    if (ri !== -1) { requests[ri].status = 'dismissed'; localStorage.setItem('db_password_reset_requests', JSON.stringify(requests)); }
+    return;
+  }
+  await supabaseClient.from('password_reset_requests').update({ status: 'dismissed' }).eq('user_id', userId);
 }
 
 // ── Watch for Mid-Session Suspension ─────────────────────────

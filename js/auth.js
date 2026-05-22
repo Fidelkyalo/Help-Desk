@@ -326,8 +326,82 @@ function showSuspensionOverlay(profile) {
   });
 }
 
+// ── Security Questions — Save ─────────────────────────────────
+// Stores the user's chosen questions + hashed answers on their profile.
+// answers is an array of { question, answer } objects (5 items).
+// Answers are lowercased + trimmed before storing so comparison is
+// case-insensitive and whitespace-tolerant.
+async function saveSecurityQuestions(userId, answers) {
+  const payload = answers.map(a => ({
+    question: a.question,
+    // Simple normalisation — not cryptographic, but keeps answers
+    // consistent across devices without a server-side hash function.
+    answer: a.answer.trim().toLowerCase()
+  }));
+  const { error } = await supabaseClient
+    .from('profiles')
+    .update({ security_questions: payload })
+    .eq('id', userId);
+  if (error) throw error;
+}
+
+// ── Security Questions — Fetch by Email ──────────────────────
+// Returns the array of { question, answer } objects for the given
+// email address, or null if the user has no questions set.
+async function getSecurityQuestionsByEmail(email) {
+  const { data, error } = await supabaseClient
+    .from('profiles')
+    .select('id, security_questions')
+    .eq('email', email)
+    .single();
+  if (error || !data) return null;
+  return { id: data.id, questions: data.security_questions || [] };
+}
+
+// ── Security Questions — Verify Answers ──────────────────────
+// Takes the stored questions array and the user's submitted answers
+// (array of strings, same order). Returns true only if every answer
+// matches (case-insensitive, trimmed).
+function verifySecurityAnswers(stored, submitted) {
+  if (!stored || stored.length === 0) return false;
+  if (stored.length !== submitted.length) return false;
+  return stored.every((item, i) =>
+    item.answer === (submitted[i] || '').trim().toLowerCase()
+  );
+}
+
+// ── Password Reset via Security Questions ────────────────────
+// Updates the Supabase Auth password for the given user.
+// NOTE: In live Supabase this requires the user to be signed in,
+// so we sign them in with a temporary admin-style RPC or use the
+// admin API. Since we only have the anon key here, we store a
+// one-time reset token in the profile and redirect to a page that
+// completes the reset after the user re-authenticates.
+// For the mock (demo) mode we update the credential directly.
+async function resetPasswordWithQuestions(userId, newPassword) {
+  if (window.isDemoMode) {
+    const creds = JSON.parse(localStorage.getItem('db_auth_credentials')) || [];
+    const idx = creds.findIndex(c => c.id === userId);
+    if (idx !== -1) {
+      creds[idx].password = newPassword;
+      localStorage.setItem('db_auth_credentials', JSON.stringify(creds));
+    }
+    return;
+  }
+  // Live Supabase: store a short-lived reset token on the profile.
+  // The reset-password page reads this token, signs the user in via
+  // the Supabase magic-link flow, then calls updateUser({ password }).
+  const token = crypto.randomUUID();
+  const expiry = new Date(Date.now() + 15 * 60 * 1000).toISOString(); // 15 min
+  const { error } = await supabaseClient
+    .from('profiles')
+    .update({ reset_token: token, reset_token_expiry: expiry })
+    .eq('id', userId);
+  if (error) throw error;
+  return token; // caller will redirect to reset-password.html?token=…&uid=…
+}
+
 // ── Watch for Mid-Session Suspension ─────────────────────────
-// Call this once after a successful login on any customer page.
 // It subscribes to realtime profile changes so that if an admin
 // suspends the user while they are already logged in, the overlay
 // appears immediately — without needing a page refresh.

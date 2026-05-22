@@ -12,19 +12,143 @@
   <link rel="stylesheet" href="css/auth.css" />
   <link rel="stylesheet" href="css/responsive.css" />
   <script src="js/theme.js"></script>
+  <style>
+    /* ── Forgot-password modal ─────────────────────────────── */
+    .fp-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 9000;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+    .fp-overlay.active { display: flex; }
+
+    .fp-box {
+      background: var(--surface-solid);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 2.25rem 2rem;
+      width: 100%;
+      max-width: 480px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 30px 70px rgba(0,0,0,0.4);
+      animation: fpSlideUp 0.35s cubic-bezier(0.16,1,0.3,1);
+    }
+    @keyframes fpSlideUp {
+      from { transform: translateY(28px); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+
+    .fp-step { display: none; }
+    .fp-step.active { display: block; }
+
+    .fp-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 0.35rem;
+    }
+    .fp-subtitle {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+      line-height: 1.55;
+    }
+    .fp-icon {
+      font-size: 2.25rem;
+      margin-bottom: 0.75rem;
+      display: block;
+    }
+
+    .fp-question-block {
+      background: var(--primary-light);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem 1.1rem;
+      margin-bottom: 1rem;
+    }
+    .fp-question-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.4rem;
+    }
+    .fp-question-text {
+      font-size: 0.9rem;
+      color: var(--text);
+      font-weight: 500;
+      margin-bottom: 0.65rem;
+    }
+
+    .fp-wrong-banner {
+      background: var(--danger-light);
+      border: 1px solid rgba(220,38,38,0.3);
+      border-radius: 10px;
+      padding: 0.9rem 1rem;
+      color: var(--danger);
+      font-size: 0.875rem;
+      font-weight: 600;
+      display: none;
+      margin-bottom: 1rem;
+      text-align: center;
+    }
+    .fp-wrong-banner.show { display: block; }
+
+    .fp-actions {
+      display: flex;
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+    }
+    .fp-actions .btn { flex: 1; }
+
+    .fp-progress {
+      display: flex;
+      gap: 0.35rem;
+      margin-bottom: 1.5rem;
+    }
+    .fp-progress-dot {
+      height: 4px;
+      flex: 1;
+      border-radius: 4px;
+      background: var(--border);
+      transition: background 0.3s;
+    }
+    .fp-progress-dot.done { background: var(--primary); }
+
+    /* forgot link */
+    .forgot-link {
+      display: block;
+      text-align: right;
+      font-size: 0.8rem;
+      color: var(--primary);
+      font-weight: 500;
+      margin-top: -0.25rem;
+      margin-bottom: 0.75rem;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .forgot-link:hover { text-decoration: underline; }
+  </style>
 </head>
 <body class="auth-page">
 
-  <!-- Theme toggle (floating, top-right) -->
+  <!-- Theme toggle -->
   <button class="theme-toggle" style="position:fixed;top:1.25rem;right:1.25rem;z-index:999;" aria-label="Toggle theme">☀️</button>
 
   <!-- State Department Brand Logo -->
   <div class="auth-brand-logo">
-    <img src="Images/State%20Department.jpg" alt="United States Department of State Seal" />
+    <img src="Images/State%20Department.jpg" alt="State Department Seal" />
   </div>
 
   <div class="auth-card">
-    <!-- Logo -->
     <div class="auth-logo">
       <div class="auth-logo__icon">
         <img src="Images/Logo.png" alt="Help Desk Logo" />
@@ -35,10 +159,8 @@
     <h1 class="auth-title">Welcome back</h1>
     <p class="auth-subtitle">Sign in to your account to continue</p>
 
-    <!-- Alert -->
     <div id="alert" class="auth-alert auth-alert--error"></div>
 
-    <!-- Form -->
     <form id="loginForm" class="auth-form" novalidate>
       <div class="form-group">
         <label class="form-label" for="email">Email address</label>
@@ -53,11 +175,11 @@
           <button type="button" class="password-toggle" id="togglePassword" aria-label="Toggle password visibility">👁</button>
         </div>
         <span class="form-error" id="passwordError"></span>
+        <!-- Forgot password link sits just below the password field -->
+        <a class="forgot-link" id="forgotLink">Forgot password?</a>
       </div>
 
-      <button type="submit" class="btn btn--primary btn--full" id="submitBtn">
-        Sign In
-      </button>
+      <button type="submit" class="btn btn--primary btn--full" id="submitBtn">Sign In</button>
     </form>
 
     <div class="auth-footer">
@@ -69,41 +191,128 @@
     Ministry of Labour and Social Protection &middot; State Department for Social Protection and Senior Citizen Affairs &middot; GOK &middot; Help Desk Support. &copy; <span id="footerYear">2026</span> All rights reserved.
   </footer>
 
-  <!-- Supabase CDN -->
+  <!-- ═══════════════════════════════════════════════════════
+       FORGOT PASSWORD MODAL  (3 steps)
+       Step 1 — Enter email
+       Step 2 — Answer your 5 security questions
+       Step 3 — Set new password
+  ════════════════════════════════════════════════════════ -->
+  <div class="fp-overlay" id="fpOverlay" role="dialog" aria-modal="true" aria-label="Reset password">
+    <div class="fp-box" id="fpBox">
+
+      <!-- Progress dots (3 steps) -->
+      <div class="fp-progress">
+        <div class="fp-progress-dot done" id="fpDot1"></div>
+        <div class="fp-progress-dot"      id="fpDot2"></div>
+        <div class="fp-progress-dot"      id="fpDot3"></div>
+      </div>
+
+      <!-- ── Step 1: Email ── -->
+      <div class="fp-step active" id="fpStep1">
+        <span class="fp-icon">🔑</span>
+        <div class="fp-title">Reset your password</div>
+        <div class="fp-subtitle">Enter the email address linked to your account. We'll ask you to answer your security questions next.</div>
+
+        <div class="fp-wrong-banner" id="fpEmailError">No account found with that email address, or no security questions have been set up for this account.</div>
+
+        <div class="form-group">
+          <label class="form-label" for="fpEmail">Email address</label>
+          <input class="form-input" type="email" id="fpEmail" placeholder="you@example.com" autocomplete="email" />
+          <span class="form-error" id="fpEmailFieldError"></span>
+        </div>
+
+        <div class="fp-actions">
+          <button class="btn btn--primary" id="fpStep1Btn">Continue →</button>
+          <button class="btn btn--secondary" onclick="closeFpModal()">Cancel</button>
+        </div>
+      </div>
+
+      <!-- ── Step 2: Answer questions ── -->
+      <div class="fp-step" id="fpStep2">
+        <span class="fp-icon">🛡️</span>
+        <div class="fp-title">Answer your security questions</div>
+        <div class="fp-subtitle">Answer all 5 questions exactly as you set them up. Answers are not case-sensitive.</div>
+
+        <div class="fp-wrong-banner" id="fpWrongBanner">
+          ❌ One or more answers are incorrect. Please check your answers and try again.
+        </div>
+
+        <div id="fpQuestionsContainer"></div>
+
+        <div class="fp-actions">
+          <button class="btn btn--primary" id="fpStep2Btn">Verify Answers →</button>
+          <button class="btn btn--secondary" onclick="closeFpModal()">Cancel</button>
+        </div>
+      </div>
+
+      <!-- ── Step 3: New password ── -->
+      <div class="fp-step" id="fpStep3">
+        <span class="fp-icon">✅</span>
+        <div class="fp-title">Set a new password</div>
+        <div class="fp-subtitle">Your identity has been verified. Choose a strong new password.</div>
+
+        <div class="fp-wrong-banner" id="fpPwdError"></div>
+
+        <div class="form-group">
+          <label class="form-label" for="fpNewPwd">New password</label>
+          <div class="password-wrapper">
+            <input class="form-input" type="password" id="fpNewPwd" placeholder="Min. 8 characters" autocomplete="new-password" />
+            <button type="button" class="password-toggle" onclick="toggleFpPwd('fpNewPwd',this)" aria-label="Toggle">👁</button>
+          </div>
+          <span class="form-error" id="fpNewPwdError"></span>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="fpConfirmPwd">Confirm new password</label>
+          <div class="password-wrapper">
+            <input class="form-input" type="password" id="fpConfirmPwd" placeholder="Re-type new password" autocomplete="new-password" />
+            <button type="button" class="password-toggle" onclick="toggleFpPwd('fpConfirmPwd',this)" aria-label="Toggle">👁</button>
+          </div>
+          <span class="form-error" id="fpConfirmPwdError"></span>
+        </div>
+
+        <div class="fp-actions">
+          <button class="btn btn--primary" id="fpStep3Btn">Save New Password</button>
+          <button class="btn btn--secondary" onclick="closeFpModal()">Cancel</button>
+        </div>
+      </div>
+
+    </div><!-- /fp-box -->
+  </div><!-- /fp-overlay -->
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/supabase-client.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/utils.js"></script>
   <script src="js/demo-controls.js"></script>
   <script>
+    document.getElementById('footerYear').textContent = new Date().getFullYear();
+
     // Redirect if already logged in
     (async () => {
       const { data: { session } } = await supabaseClient.auth.getSession();
       if (session) await redirectByRole(session);
     })();
 
-    // Toggle password visibility
+    // Toggle password visibility (login form)
     document.getElementById('togglePassword').addEventListener('click', () => {
       const pwd = document.getElementById('password');
       pwd.type = pwd.type === 'password' ? 'text' : 'password';
     });
 
-    // Form submit
+    // Login form submit
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const email    = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
-      const alert    = document.getElementById('alert');
+      const alertEl  = document.getElementById('alert');
       const btn      = document.getElementById('submitBtn');
 
-      // Clear errors
       clearError('emailError');
       clearError('passwordError');
-      alert.style.display = 'none';
+      alertEl.style.display = 'none';
 
-      // Validate
       let valid = true;
-      if (!email) { showError('emailError', 'Email is required'); valid = false; }
+      if (!email)    { showError('emailError',    'Email is required');    valid = false; }
       if (!password) { showError('passwordError', 'Password is required'); valid = false; }
       if (!valid) return;
 
@@ -112,20 +321,213 @@
 
       try {
         const result = await login(email, password);
-        const { session } = result;
-        await redirectByRole(session);
+        await redirectByRole(result.session);
       } catch (err) {
-        // Suspended account — show the overlay instead of a generic error
         if (err.isSuspension && err.profile) {
           btn.disabled = false;
           btn.textContent = 'Sign In';
           showSuspensionOverlay(err.profile);
           return;
         }
-        alert.textContent = err.message || 'Invalid email or password.';
-        alert.style.display = 'block';
+        alertEl.textContent = err.message || 'Invalid email or password.';
+        alertEl.style.display = 'block';
         btn.disabled = false;
         btn.textContent = 'Sign In';
+      }
+    });
+
+    // ── Forgot Password Modal ─────────────────────────────────
+    let fpUserId   = null;  // resolved after step 1
+    let fpStored   = null;  // stored questions array
+
+    function openFpModal() {
+      fpUserId = null;
+      fpStored = null;
+      // Reset all steps
+      ['fpStep1','fpStep2','fpStep3'].forEach((id,i) => {
+        document.getElementById(id).classList.toggle('active', i === 0);
+      });
+      setFpDots(1);
+      document.getElementById('fpEmail').value = '';
+      document.getElementById('fpEmailError').classList.remove('show');
+      document.getElementById('fpEmailFieldError').textContent = '';
+      document.getElementById('fpWrongBanner').classList.remove('show');
+      document.getElementById('fpQuestionsContainer').innerHTML = '';
+      document.getElementById('fpNewPwd').value = '';
+      document.getElementById('fpConfirmPwd').value = '';
+      document.getElementById('fpPwdError').classList.remove('show');
+      clearError('fpNewPwdError');
+      clearError('fpConfirmPwdError');
+      document.getElementById('fpOverlay').classList.add('active');
+      document.getElementById('fpEmail').focus();
+    }
+
+    function closeFpModal() {
+      document.getElementById('fpOverlay').classList.remove('active');
+    }
+
+    function setFpDots(activeStep) {
+      for (let i = 1; i <= 3; i++) {
+        document.getElementById('fpDot' + i).classList.toggle('done', i <= activeStep);
+      }
+    }
+
+    function goFpStep(n) {
+      ['fpStep1','fpStep2','fpStep3'].forEach((id,i) => {
+        document.getElementById(id).classList.toggle('active', i + 1 === n);
+      });
+      setFpDots(n);
+      // Scroll modal to top
+      document.getElementById('fpBox').scrollTop = 0;
+    }
+
+    function toggleFpPwd(inputId, btn) {
+      const el = document.getElementById(inputId);
+      el.type = el.type === 'password' ? 'text' : 'password';
+    }
+
+    // Close on backdrop click
+    document.getElementById('fpOverlay').addEventListener('click', (e) => {
+      if (e.target === document.getElementById('fpOverlay')) closeFpModal();
+    });
+
+    document.getElementById('forgotLink').addEventListener('click', openFpModal);
+
+    // ── Step 1: look up email ─────────────────────────────────
+    document.getElementById('fpStep1Btn').addEventListener('click', async () => {
+      const email = document.getElementById('fpEmail').value.trim();
+      const errBanner = document.getElementById('fpEmailError');
+      const errField  = document.getElementById('fpEmailFieldError');
+      errBanner.classList.remove('show');
+      errField.textContent = '';
+
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        errField.textContent = 'Please enter a valid email address.';
+        return;
+      }
+
+      const btn = document.getElementById('fpStep1Btn');
+      btn.disabled = true;
+      btn.textContent = 'Looking up…';
+
+      try {
+        const result = await getSecurityQuestionsByEmail(email);
+        if (!result || !result.questions || result.questions.length === 0) {
+          errBanner.classList.add('show');
+          btn.disabled = false;
+          btn.textContent = 'Continue →';
+          return;
+        }
+        fpUserId = result.id;
+        fpStored = result.questions;
+
+        // Build the answer inputs for step 2
+        const container = document.getElementById('fpQuestionsContainer');
+        container.innerHTML = fpStored.map((q, i) => `
+          <div class="fp-question-block">
+            <div class="fp-question-label">Question ${i + 1}</div>
+            <div class="fp-question-text">${escapeHtml(q.question)}</div>
+            <input class="form-input" type="text" id="fpAns${i}"
+              placeholder="Your answer…" autocomplete="off"
+              style="font-size:0.875rem;" />
+          </div>`).join('');
+
+        btn.disabled = false;
+        btn.textContent = 'Continue →';
+        goFpStep(2);
+        // Focus first answer
+        const first = document.getElementById('fpAns0');
+        if (first) first.focus();
+      } catch (err) {
+        errBanner.textContent = err.message || 'Something went wrong. Please try again.';
+        errBanner.classList.add('show');
+        btn.disabled = false;
+        btn.textContent = 'Continue →';
+      }
+    });
+
+    // ── Step 2: verify answers ────────────────────────────────
+    document.getElementById('fpStep2Btn').addEventListener('click', () => {
+      const wrongBanner = document.getElementById('fpWrongBanner');
+      wrongBanner.classList.remove('show');
+
+      if (!fpStored || fpStored.length === 0) return;
+
+      const submitted = fpStored.map((_, i) => {
+        const el = document.getElementById('fpAns' + i);
+        return el ? el.value : '';
+      });
+
+      const allFilled = submitted.every(a => a.trim() !== '');
+      if (!allFilled) {
+        wrongBanner.textContent = '⚠️ Please answer all questions before continuing.';
+        wrongBanner.classList.add('show');
+        return;
+      }
+
+      const correct = verifySecurityAnswers(fpStored, submitted);
+      if (!correct) {
+        wrongBanner.textContent = '❌ One or more answers are incorrect. Please check your answers and try again.';
+        wrongBanner.classList.add('show');
+        // Shake the wrong inputs
+        fpStored.forEach((item, i) => {
+          const el = document.getElementById('fpAns' + i);
+          if (!el) return;
+          const norm = (submitted[i] || '').trim().toLowerCase();
+          if (norm !== item.answer) {
+            el.style.borderColor = 'var(--danger)';
+            el.style.boxShadow   = '0 0 0 3px rgba(220,38,38,0.15)';
+            setTimeout(() => {
+              el.style.borderColor = '';
+              el.style.boxShadow   = '';
+            }, 2500);
+          }
+        });
+        return;
+      }
+
+      goFpStep(3);
+      document.getElementById('fpNewPwd').focus();
+    });
+
+    // ── Step 3: save new password ─────────────────────────────
+    document.getElementById('fpStep3Btn').addEventListener('click', async () => {
+      const newPwd     = document.getElementById('fpNewPwd').value;
+      const confirmPwd = document.getElementById('fpConfirmPwd').value;
+      const errBanner  = document.getElementById('fpPwdError');
+      errBanner.classList.remove('show');
+      clearError('fpNewPwdError');
+      clearError('fpConfirmPwdError');
+
+      let valid = true;
+      if (newPwd.length < 8) {
+        showError('fpNewPwdError', 'Password must be at least 8 characters');
+        valid = false;
+      }
+      if (newPwd !== confirmPwd) {
+        showError('fpConfirmPwdError', 'Passwords do not match');
+        valid = false;
+      }
+      if (!valid) return;
+
+      const btn = document.getElementById('fpStep3Btn');
+      btn.disabled = true;
+      btn.textContent = 'Saving…';
+
+      try {
+        await resetPasswordWithQuestions(fpUserId, newPwd);
+        closeFpModal();
+        // Show success on the login page
+        const alertEl = document.getElementById('alert');
+        alertEl.className = 'auth-alert auth-alert--success';
+        alertEl.textContent = '✅ Password reset successfully! You can now sign in with your new password.';
+        alertEl.style.display = 'block';
+      } catch (err) {
+        errBanner.textContent = err.message || 'Failed to reset password. Please try again.';
+        errBanner.classList.add('show');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Save New Password';
       }
     });
   </script>

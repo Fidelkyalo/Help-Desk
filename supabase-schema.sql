@@ -225,14 +225,17 @@ commit;
 -- ────────────────────────────────────────────────────────────────────────────
 -- 7. ACCOUNT MANAGEMENT COLUMNS (run once as a migration)
 -- ────────────────────────────────────────────────────────────────────────────
--- Adds suspension tracking fields to the profiles table.
+-- Adds suspension tracking fields and security questions to the profiles table.
 -- Run these statements in your Supabase SQL editor.
 
 alter table public.profiles
   add column if not exists suspended        boolean                  not null default false,
   add column if not exists suspension_reason text,
   add column if not exists suspension_until  timestamp with time zone,
-  add column if not exists pf_number         text;
+  add column if not exists pf_number         text,
+  add column if not exists security_questions jsonb,
+  add column if not exists reset_token       text,
+  add column if not exists reset_token_expiry timestamp with time zone;
 
 -- ────────────────────────────────────────────────────────────────────────────
 -- 8. ADDITIONAL RLS POLICIES FOR ADMIN ACCOUNT MANAGEMENT

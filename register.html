@@ -12,19 +12,174 @@
   <link rel="stylesheet" href="css/auth.css" />
   <link rel="stylesheet" href="css/responsive.css" />
   <script src="js/theme.js"></script>
+  <style>
+    /* ── Step indicator ──────────────────────────────────────── */
+    .reg-steps {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      margin-bottom: 2rem;
+    }
+    .reg-step-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.35rem;
+      position: relative;
+    }
+    .reg-step-item + .reg-step-item::before {
+      content: '';
+      position: absolute;
+      right: 100%;
+      top: 18px;
+      width: 48px;
+      height: 2px;
+      background: var(--border);
+      transition: background 0.3s;
+    }
+    .reg-step-item.done + .reg-step-item::before { background: var(--primary); }
+
+    .reg-step-circle {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      background: var(--surface);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      transition: all 0.3s;
+    }
+    .reg-step-item.active .reg-step-circle {
+      border-color: var(--primary);
+      background: var(--primary);
+      color: #fff;
+      box-shadow: 0 0 0 4px var(--primary-glow);
+    }
+    .reg-step-item.done .reg-step-circle {
+      border-color: var(--success);
+      background: var(--success);
+      color: #fff;
+    }
+    .reg-step-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+    .reg-step-item.active .reg-step-label { color: var(--primary); }
+    .reg-step-item.done  .reg-step-label  { color: var(--success); }
+
+    /* ── Security questions step ─────────────────────────────── */
+    .sq-pool-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.5rem;
+      margin-bottom: 1.25rem;
+    }
+    .sq-pool-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: var(--input-bg);
+    }
+    .sq-pool-item:hover { border-color: var(--primary); background: var(--primary-light); }
+    .sq-pool-item.selected {
+      border-color: var(--primary);
+      background: var(--primary-light);
+      box-shadow: 0 0 0 3px var(--primary-glow);
+    }
+    .sq-pool-item.disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+    .sq-checkbox {
+      width: 18px;
+      height: 18px;
+      border-radius: 5px;
+      border: 2px solid var(--border);
+      flex-shrink: 0;
+      margin-top: 1px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      transition: all 0.2s;
+    }
+    .sq-pool-item.selected .sq-checkbox {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+    }
+    .sq-pool-text {
+      font-size: 0.875rem;
+      color: var(--text);
+      line-height: 1.45;
+    }
+
+    .sq-selected-list { margin-bottom: 1.25rem; }
+    .sq-answer-block {
+      background: var(--primary-light);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem 1.1rem;
+      margin-bottom: 0.85rem;
+    }
+    .sq-answer-q {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.3rem;
+    }
+    .sq-answer-qtext {
+      font-size: 0.875rem;
+      color: var(--text);
+      font-weight: 500;
+      margin-bottom: 0.6rem;
+    }
+
+    .sq-counter {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 0.75rem;
+      font-weight: 500;
+    }
+    .sq-counter span {
+      color: var(--primary);
+      font-weight: 700;
+    }
+
+    /* sub-step within step 2 */
+    .sq-substep { display: none; }
+    .sq-substep.active { display: block; }
+
+    .reg-page { display: none; }
+    .reg-page.active { display: block; }
+  </style>
 </head>
 <body class="auth-page">
 
-  <!-- Theme toggle (floating, top-right) -->
   <button class="theme-toggle" style="position:fixed;top:1.25rem;right:1.25rem;z-index:999;" aria-label="Toggle theme">☀️</button>
 
-  <!-- State Department Brand Logo -->
   <div class="auth-brand-logo">
-    <img src="Images/State%20Department.jpg" alt="United States Department of State Seal" />
+    <img src="Images/State%20Department.jpg" alt="State Department Seal" />
   </div>
 
   <div class="auth-card">
-    <!-- Logo -->
     <div class="auth-logo">
       <div class="auth-logo__icon">
         <img src="Images/Logo.png" alt="Help Desk Logo" />
@@ -32,83 +187,281 @@
       <div class="auth-logo__text">Help Desk</div>
     </div>
 
-    <h1 class="auth-title">Create an account</h1>
-    <p class="auth-subtitle">Fill in your details to get started</p>
+    <!-- Step indicator -->
+    <div class="reg-steps" id="regSteps">
+      <div class="reg-step-item active" id="regStepItem1">
+        <div class="reg-step-circle">1</div>
+        <div class="reg-step-label">Account</div>
+      </div>
+      <div class="reg-step-item" id="regStepItem2">
+        <div class="reg-step-circle">2</div>
+        <div class="reg-step-label">Security</div>
+      </div>
+    </div>
 
-    <!-- Alert -->
     <div id="alert" class="auth-alert"></div>
 
-    <!-- Form -->
-    <form id="registerForm" class="auth-form" novalidate>
-      <div class="form-group">
-        <label class="form-label" for="fullName">Full name</label>
-        <input class="form-input" type="text" id="fullName" placeholder="John Doe" required autocomplete="name" />
-        <span class="form-error" id="nameError"></span>
-      </div>
+    <!-- ══════════════════════════════════════════════════════
+         PAGE 1 — Account details
+    ═══════════════════════════════════════════════════════ -->
+    <div class="reg-page active" id="regPage1">
+      <h1 class="auth-title">Create an account</h1>
+      <p class="auth-subtitle">Fill in your details to get started</p>
 
-      <div class="form-group">
-        <label class="form-label" for="email">Email address</label>
-        <input class="form-input" type="email" id="email" placeholder="you@example.com" required autocomplete="email" />
-        <span class="form-error" id="emailError"></span>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label" for="phone">Phone number <span class="text-muted text-sm">(for SMS & WhatsApp)</span></label>
-        <input class="form-input" type="tel" id="phone" placeholder="+1234567890" required autocomplete="tel" />
-        <span class="form-error" id="phoneError"></span>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label" for="pfNumber">
-          PF Number <span class="text-muted text-sm">(optional)</span>
-        </label>
-        <input class="form-input" type="text" id="pfNumber" placeholder="e.g. PF123456" autocomplete="off" />
-        <span class="form-error" id="pfNumberError"></span>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label" for="password">Password</label>
-        <div class="password-wrapper">
-          <input class="form-input" type="password" id="password" placeholder="Min. 8 characters" required autocomplete="new-password" />
-          <button type="button" class="password-toggle" id="togglePassword" aria-label="Toggle password visibility">👁</button>
+      <form id="registerForm" class="auth-form" novalidate>
+        <div class="form-group">
+          <label class="form-label" for="fullName">Full name</label>
+          <input class="form-input" type="text" id="fullName" placeholder="John Doe" required autocomplete="name" />
+          <span class="form-error" id="nameError"></span>
         </div>
-        <span class="form-error" id="passwordError"></span>
+
+        <div class="form-group">
+          <label class="form-label" for="email">Email address</label>
+          <input class="form-input" type="email" id="email" placeholder="you@example.com" required autocomplete="email" />
+          <span class="form-error" id="emailError"></span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="phone">Phone number <span class="text-muted text-sm">(for SMS &amp; WhatsApp)</span></label>
+          <input class="form-input" type="tel" id="phone" placeholder="+1234567890" required autocomplete="tel" />
+          <span class="form-error" id="phoneError"></span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="pfNumber">PF Number <span class="text-muted text-sm">(optional)</span></label>
+          <input class="form-input" type="text" id="pfNumber" placeholder="e.g. PF123456" autocomplete="off" />
+          <span class="form-error" id="pfNumberError"></span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="password">Password</label>
+          <div class="password-wrapper">
+            <input class="form-input" type="password" id="password" placeholder="Min. 8 characters" required autocomplete="new-password" />
+            <button type="button" class="password-toggle" id="togglePassword" aria-label="Toggle password visibility">👁</button>
+          </div>
+          <span class="form-error" id="passwordError"></span>
+        </div>
+
+        <button type="submit" class="btn btn--primary btn--full" id="submitBtn">
+          Continue to Security Questions →
+        </button>
+      </form>
+
+      <div class="auth-footer">
+        Already have an account? <a href="index.html">Sign in</a>
+      </div>
+    </div><!-- /regPage1 -->
+
+    <!-- ══════════════════════════════════════════════════════
+         PAGE 2 — Security questions
+         Sub-step A: choose 5 from 10
+         Sub-step B: answer the 5 chosen
+    ═══════════════════════════════════════════════════════ -->
+    <div class="reg-page" id="regPage2">
+
+      <!-- Sub-step A: pick questions -->
+      <div class="sq-substep active" id="sqSubA">
+        <h1 class="auth-title" style="font-size:1.25rem;">Choose 5 security questions</h1>
+        <p class="auth-subtitle">These will be used to verify your identity if you forget your password. Select exactly 5.</p>
+
+        <div class="sq-counter">Selected: <span id="sqCount">0</span> / 5</div>
+
+        <div class="sq-pool-grid" id="sqPoolGrid"></div>
+
+        <button class="btn btn--primary btn--full" id="sqNextBtn" disabled>
+          Answer Selected Questions →
+        </button>
+        <div style="text-align:center;margin-top:1rem;">
+          <a href="#" onclick="backToPage1();return false;" style="font-size:0.8rem;color:var(--text-muted);">← Back</a>
+        </div>
       </div>
 
-      <button type="submit" class="btn btn--primary btn--full" id="submitBtn">
-        Create Account
-      </button>
-    </form>
+      <!-- Sub-step B: answer questions -->
+      <div class="sq-substep" id="sqSubB">
+        <h1 class="auth-title" style="font-size:1.25rem;">Answer your questions</h1>
+        <p class="auth-subtitle">Write answers you will remember. Answers are not case-sensitive.</p>
 
-    <div class="auth-footer">
-      Already have an account? <a href="index.html">Sign in</a>
-    </div>
-  </div>
+        <div class="sq-selected-list" id="sqAnswerList"></div>
+
+        <div id="sqAnswerAlert" class="auth-alert auth-alert--error" style="margin-bottom:1rem;"></div>
+
+        <button class="btn btn--primary btn--full" id="sqFinishBtn">
+          Finish &amp; Create Account
+        </button>
+        <div style="text-align:center;margin-top:1rem;">
+          <a href="#" onclick="backToSubA();return false;" style="font-size:0.8rem;color:var(--text-muted);">← Back to question selection</a>
+        </div>
+      </div>
+
+    </div><!-- /regPage2 -->
+
+  </div><!-- /auth-card -->
 
   <footer class="auth-page-footer">
     Ministry of Labour and Social Protection &middot; State Department for Social Protection and Senior Citizen Affairs &middot; GOK &middot; Help Desk Support. &copy; <span id="footerYear">2026</span> All rights reserved.
   </footer>
 
-  <!-- Supabase CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/supabase-client.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/utils.js"></script>
   <script src="js/demo-controls.js"></script>
   <script>
+    document.getElementById('footerYear').textContent = new Date().getFullYear();
+
     // Redirect if already logged in
     (async () => {
       const { data: { session } } = await supabaseClient.auth.getSession();
       if (session) await redirectByRole(session);
     })();
 
-    // Toggle password visibility
+    // ── The 10 security questions pool ───────────────────────
+    const QUESTION_POOL = [
+      "What was the name of your first pet?",
+      "What is your mother's maiden name?",
+      "What was the name of your primary school?",
+      "What city were you born in?",
+      "What is the name of the street you grew up on?",
+      "What was the make and model of your first car?",
+      "What is your oldest sibling's middle name?",
+      "What was the name of your childhood best friend?",
+      "What was the name of the hospital where you were born?",
+      "What is your favourite sports team?"
+    ];
+
+    // Holds data between steps
+    let pendingUserId   = null;  // set after Supabase account is created
+    let selectedIndices = [];    // indices into QUESTION_POOL
+
+    // ── Toggle password visibility ────────────────────────────
     document.getElementById('togglePassword').addEventListener('click', () => {
       const pwd = document.getElementById('password');
       pwd.type = pwd.type === 'password' ? 'text' : 'password';
     });
 
-    // Form submit
+    // ── Step indicator helpers ────────────────────────────────
+    function setRegStep(n) {
+      for (let i = 1; i <= 2; i++) {
+        const item = document.getElementById('regStepItem' + i);
+        item.classList.remove('active','done');
+        if (i < n)  item.classList.add('done');
+        if (i === n) item.classList.add('active');
+      }
+      document.getElementById('regPage1').classList.toggle('active', n === 1);
+      document.getElementById('regPage2').classList.toggle('active', n === 2);
+    }
+
+    function backToPage1() { setRegStep(1); }
+
+    function backToSubA() {
+      document.getElementById('sqSubA').classList.add('active');
+      document.getElementById('sqSubB').classList.remove('active');
+    }
+
+    // ── Build the question pool grid ──────────────────────────
+    function buildPoolGrid() {
+      const grid = document.getElementById('sqPoolGrid');
+      grid.innerHTML = QUESTION_POOL.map((q, i) => `
+        <div class="sq-pool-item" id="sqItem${i}" onclick="toggleQuestion(${i})">
+          <div class="sq-checkbox" id="sqCheck${i}"></div>
+          <div class="sq-pool-text">${escapeHtml(q)}</div>
+        </div>`).join('');
+    }
+
+    function toggleQuestion(idx) {
+      const alreadySelected = selectedIndices.includes(idx);
+      if (alreadySelected) {
+        selectedIndices = selectedIndices.filter(i => i !== idx);
+      } else {
+        if (selectedIndices.length >= 5) return; // max 5
+        selectedIndices.push(idx);
+      }
+      refreshPoolUI();
+    }
+
+    function refreshPoolUI() {
+      const count = selectedIndices.length;
+      document.getElementById('sqCount').textContent = count;
+      document.getElementById('sqNextBtn').disabled = count !== 5;
+
+      QUESTION_POOL.forEach((_, i) => {
+        const item  = document.getElementById('sqItem'  + i);
+        const check = document.getElementById('sqCheck' + i);
+        const sel   = selectedIndices.includes(i);
+        item.classList.toggle('selected', sel);
+        item.classList.toggle('disabled', !sel && count >= 5);
+        check.textContent = sel ? '✓' : '';
+      });
+    }
+
+    // ── Move to answer sub-step ───────────────────────────────
+    document.getElementById('sqNextBtn').addEventListener('click', () => {
+      if (selectedIndices.length !== 5) return;
+
+      const list = document.getElementById('sqAnswerList');
+      list.innerHTML = selectedIndices.map((qi, pos) => `
+        <div class="sq-answer-block">
+          <div class="sq-answer-q">Question ${pos + 1}</div>
+          <div class="sq-answer-qtext">${escapeHtml(QUESTION_POOL[qi])}</div>
+          <input class="form-input" type="text" id="sqAns${pos}"
+            placeholder="Your answer…" autocomplete="off"
+            style="font-size:0.875rem;" />
+          <span class="form-error" id="sqAnsErr${pos}"></span>
+        </div>`).join('');
+
+      document.getElementById('sqSubA').classList.remove('active');
+      document.getElementById('sqSubB').classList.add('active');
+      document.getElementById('sqAns0').focus();
+    });
+
+    // ── Finish: save answers and complete registration ────────
+    document.getElementById('sqFinishBtn').addEventListener('click', async () => {
+      const alertEl = document.getElementById('sqAnswerAlert');
+      alertEl.style.display = 'none';
+
+      // Collect and validate answers
+      let valid = true;
+      const answers = selectedIndices.map((qi, pos) => {
+        const el  = document.getElementById('sqAns' + pos);
+        const val = el ? el.value.trim() : '';
+        clearError('sqAnsErr' + pos);
+        if (!val) {
+          showError('sqAnsErr' + pos, 'Answer is required');
+          valid = false;
+        }
+        return { question: QUESTION_POOL[qi], answer: val };
+      });
+      if (!valid) return;
+
+      const btn = document.getElementById('sqFinishBtn');
+      btn.disabled = true;
+      btn.textContent = 'Saving…';
+
+      try {
+        await saveSecurityQuestions(pendingUserId, answers);
+
+        // All done — redirect to dashboard
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (session) {
+          await redirectByRole(session);
+        } else {
+          // Email confirmation required — just go to login
+          const alertMain = document.getElementById('alert');
+          alertMain.className = 'auth-alert auth-alert--success';
+          alertMain.textContent = 'Account created! Please check your email to confirm, then sign in.';
+          alertMain.style.display = 'block';
+          setRegStep(1);
+        }
+      } catch (err) {
+        alertEl.className = 'auth-alert auth-alert--error';
+        alertEl.textContent = err.message || 'Failed to save security questions. Please try again.';
+        alertEl.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Finish & Create Account';
+      }
+    });
+
+    // ── Step 1 form submit ────────────────────────────────────
     document.getElementById('registerForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const fullName = document.getElementById('fullName').value.trim();
@@ -119,15 +472,13 @@
       const alertEl  = document.getElementById('alert');
       const btn      = document.getElementById('submitBtn');
 
-      // Clear errors
       ['nameError','emailError','phoneError','pfNumberError','passwordError'].forEach(clearError);
       alertEl.style.display = 'none';
 
-      // Validate
       let valid = true;
       if (!fullName) { showError('nameError', 'Full name is required'); valid = false; }
       if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showError('emailError', 'Enter a valid email'); valid = false; }
-      if (!phone) { showError('phoneError', 'Phone number is required'); valid = false; }
+      if (!phone)    { showError('phoneError', 'Phone number is required'); valid = false; }
       if (password.length < 8) { showError('passwordError', 'Password must be at least 8 characters'); valid = false; }
       if (!valid) return;
 
@@ -136,30 +487,40 @@
 
       try {
         const data = await register(fullName, email, phone, password, pfNumber);
-        alertEl.className = 'auth-alert auth-alert--success';
-        alertEl.style.display = 'block';
 
-        if (data && data.session) {
-          alertEl.textContent = 'Account created successfully! Logging you in...';
-          btn.textContent = 'Redirecting...';
-          document.getElementById('registerForm').reset();
-          setTimeout(async () => {
-            await redirectByRole(data.session);
-          }, 1500);
+        // Grab the new user's ID so we can save questions against it
+        if (data && data.user) {
+          pendingUserId = data.user.id;
         } else {
+          // Email confirmation flow — we don't have the ID yet.
+          // Show success and skip security questions for now.
+          alertEl.className = 'auth-alert auth-alert--success';
           alertEl.textContent = 'Account created! Please check your email to confirm, then sign in.';
+          alertEl.style.display = 'block';
           document.getElementById('registerForm').reset();
           btn.textContent = 'Account Created';
+          return;
         }
+
+        btn.disabled = false;
+        btn.textContent = 'Continue to Security Questions →';
+
+        // Move to step 2
+        selectedIndices = [];
+        buildPoolGrid();
+        refreshPoolUI();
+        setRegStep(2);
+        document.getElementById('sqSubA').classList.add('active');
+        document.getElementById('sqSubB').classList.remove('active');
+
       } catch (err) {
         alertEl.className = 'auth-alert auth-alert--error';
         alertEl.textContent = err.message || 'Registration failed. Please try again.';
         alertEl.style.display = 'block';
         btn.disabled = false;
-        btn.textContent = 'Create Account';
+        btn.textContent = 'Continue to Security Questions →';
       }
     });
   </script>
 </body>
 </html>
-

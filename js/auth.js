@@ -95,9 +95,16 @@ async function redirectByRole(session) {
     profile = profileData || null;
   }
 
-  // No profile = account was deleted — kill session and stay on login page
+  // No profile = account was deleted — kill session and show message on login page
   if (!profile) {
     await supabaseClient.auth.signOut();
+    // Show a message if we're on the login page
+    const alertEl = document.getElementById('alert');
+    if (alertEl) {
+      alertEl.className = 'auth-alert auth-alert--error';
+      alertEl.textContent = 'This account no longer exists. Please create a new account to continue.';
+      alertEl.style.display = 'block';
+    }
     return;
   }
 
@@ -138,6 +145,19 @@ async function register(fullName, email, phone, password, pfNumber = '') {
     }
   });
   if (error) throw error;
+
+  // If the returned user ID is in the deleted-ids list, this is a re-registration
+  // on a previously deleted account's auth user (Supabase reuses the auth user for
+  // the same email). Remove it from deleted-ids so the new registration proceeds cleanly.
+  if (data && data.user) {
+    const deletedIds = JSON.parse(localStorage.getItem('db_deleted_ids') || '[]');
+    const idx = deletedIds.indexOf(data.user.id);
+    if (idx !== -1) {
+      deletedIds.splice(idx, 1);
+      localStorage.setItem('db_deleted_ids', JSON.stringify(deletedIds));
+    }
+  }
+
   return data;
 }
 

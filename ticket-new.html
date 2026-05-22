@@ -162,6 +162,9 @@
     }
     if (currentProfile) {
     }
+
+    // Watch for mid-session suspension by admin
+    watchSuspensionStatus(currentUser.id);
   }
 
   document.getElementById('ticketForm').addEventListener('submit', async (e) => {

@@ -326,6 +326,49 @@ function showSuspensionOverlay(profile) {
   });
 }
 
+// ── Watch for Mid-Session Suspension ─────────────────────────
+// Call this once after a successful login on any customer page.
+// It subscribes to realtime profile changes so that if an admin
+// suspends the user while they are already logged in, the overlay
+// appears immediately — without needing a page refresh.
+function watchSuspensionStatus(userId) {
+  if (!userId) return;
+
+  // Supabase realtime channel scoped to this user's profile row
+  const channel = supabaseClient
+    .channel('suspension-watch-' + userId)
+    .on(
+      'postgres_changes',
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'profiles',
+        filter: 'id=eq.' + userId
+      },
+      async (payload) => {
+        const updated = payload.new;
+        if (!updated) return;
+
+        // Skip if this is an admin account
+        if (updated.role === 'admin') return;
+
+        if (updated.suspended) {
+          const now   = new Date();
+          const until = updated.suspension_until ? new Date(updated.suspension_until) : null;
+
+          if (!until || until > now) {
+            // Active suspension detected mid-session — sign out and show overlay
+            await supabaseClient.auth.signOut();
+            showSuspensionOverlay(updated);
+          }
+        }
+      }
+    )
+    .subscribe();
+
+  return channel;
+}
+
 // ── Require Customer ──────────────────────────────────────────
 async function requireCustomer() {
   const session = await requireAuth();

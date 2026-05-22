@@ -323,6 +323,9 @@
       document.getElementById('smsNotif').checked = smsPref;
       document.getElementById('whatsappNotif').checked = waPref;
     }
+
+    // Watch for mid-session suspension by admin
+    watchSuspensionStatus(currentUser.id);
   }
 
   document.getElementById('settingsForm').addEventListener('submit', async (e) => {

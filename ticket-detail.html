@@ -116,6 +116,9 @@
     if (currentProfile) {
     }
 
+    // Watch for mid-session suspension by admin
+    watchSuspensionStatus(currentUser.id);
+
     ticketId = getParam('id');
     console.log('Ticket Detail Init — Ticket ID:', ticketId);
     if (!ticketId) {

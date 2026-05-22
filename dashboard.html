@@ -176,6 +176,9 @@
     await loadStats();
     await loadTickets();
 
+    // Watch for mid-session suspension by admin
+    watchSuspensionStatus(currentUser.id);
+
     // Realtime updates
     subscribeToMyTickets(currentUser.id, async (payload) => {
       await loadStats();

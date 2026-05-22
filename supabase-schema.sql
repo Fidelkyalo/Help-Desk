@@ -207,15 +207,19 @@ create policy "Admins and ticket owners can post replies"
 -- ────────────────────────────────────────────────────────────────────────────
 -- 6. ENABLE REALTIME REPLICATION
 -- ────────────────────────────────────────────────────────────────────────────
--- Enable realtime updates for the main help desk transaction tables
+-- Enable realtime updates for the main help desk transaction tables.
+-- profiles is included so that mid-session suspension is pushed to the
+-- customer's browser immediately without requiring a page refresh.
 begin;
   -- Remove tables from publication if they exist to avoid duplication
   alter publication supabase_realtime drop table if exists public.tickets;
   alter publication supabase_realtime drop table if exists public.ticket_replies;
-  
+  alter publication supabase_realtime drop table if exists public.profiles;
+
   -- Add tables to the realtime publication
   alter publication supabase_realtime add table public.tickets;
   alter publication supabase_realtime add table public.ticket_replies;
+  alter publication supabase_realtime add table public.profiles;
 commit;
 
 -- ────────────────────────────────────────────────────────────────────────────

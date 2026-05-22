@@ -658,10 +658,45 @@
 
     btn.disabled = true; btn.textContent = 'Suspending…';
     try {
-      const { error } = await supabaseClient.from('profiles').update({
-        suspended: true, suspension_reason: reason, suspension_until: suspendUntil
-      }).eq('id', activeCustomerId);
+      const { data: updatedRows, error } = await supabaseClient
+        .from('profiles')
+        .update({ suspended: true, suspension_reason: reason, suspension_until: suspendUntil })
+        .eq('id', activeCustomerId)
+        .select();
       if (error) throw error;
+
+      // If no rows came back the update was silently blocked by RLS.
+      // This means the "Admins can update any profile" policy is missing
+      // from the database. Surface a clear, actionable message.
+      if (!window.isDemoMode && (!updatedRows || updatedRows.length === 0)) {
+        errorEl.innerHTML = `
+          <strong>⚠️ Permission denied by database policy.</strong><br>
+          The suspension was not saved because the admin update policy is missing.<br><br>
+          Go to your <strong>Supabase Dashboard → SQL Editor</strong> and run:<br>
+          <code style="display:block;margin-top:0.5rem;padding:0.5rem;background:rgba(0,0,0,0.15);border-radius:6px;font-size:0.8rem;word-break:break-all;">
+-- Add suspension columns if not already present
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS suspended boolean NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS suspension_reason text,
+  ADD COLUMN IF NOT EXISTS suspension_until timestamp with time zone;
+
+-- Allow admins to update any profile row
+DROP POLICY IF EXISTS "Admins can update any profile" ON public.profiles;
+CREATE POLICY "Admins can update any profile"
+  ON public.profiles FOR UPDATE
+  TO authenticated
+  USING (is_admin())
+  WITH CHECK (is_admin());
+
+-- Add profiles to realtime publication
+ALTER PUBLICATION supabase_realtime ADD TABLE public.profiles;
+          </code>
+          Then refresh this page and try again.`;
+        errorEl.style.display = 'block';
+        btn.disabled = false; btn.textContent = '⏸ Suspend Account';
+        return;
+      }
+
       const idx = allCustomers.findIndex(c => c.id === activeCustomerId);
       if (idx !== -1) Object.assign(allCustomers[idx], { suspended: true, suspension_reason: reason, suspension_until: suspendUntil });
       closeSuspendModal();
@@ -684,8 +719,7 @@
 ALTER TABLE public.profiles
   ADD COLUMN IF NOT EXISTS suspended boolean NOT NULL DEFAULT false,
   ADD COLUMN IF NOT EXISTS suspension_reason text,
-  ADD COLUMN IF NOT EXISTS suspension_until timestamp with time zone,
-  ADD COLUMN IF NOT EXISTS pf_number text;
+  ADD COLUMN IF NOT EXISTS suspension_until timestamp with time zone;
           </code>
           Then refresh this page and try again.`;
       } else {
@@ -701,10 +735,20 @@ ALTER TABLE public.profiles
     const btn = document.getElementById('liftSuspensionBtn');
     btn.disabled = true; btn.textContent = 'Lifting…';
     try {
-      const { error } = await supabaseClient.from('profiles').update({
-        suspended: false, suspension_reason: null, suspension_until: null
-      }).eq('id', activeCustomerId);
+      const { data: updatedRows, error } = await supabaseClient
+        .from('profiles')
+        .update({ suspended: false, suspension_reason: null, suspension_until: null })
+        .eq('id', activeCustomerId)
+        .select();
       if (error) throw error;
+
+      // Silent RLS block — same as confirmSuspend
+      if (!window.isDemoMode && (!updatedRows || updatedRows.length === 0)) {
+        showToast('Permission denied: admin update policy missing. See SQL editor instructions.', 'error');
+        btn.disabled = false; btn.textContent = '✓ Lift Suspension';
+        return;
+      }
+
       const idx = allCustomers.findIndex(c => c.id === activeCustomerId);
       if (idx !== -1) Object.assign(allCustomers[idx], { suspended: false, suspension_reason: null, suspension_until: null });
       renderCustomerList(document.getElementById('customerSearch').value);

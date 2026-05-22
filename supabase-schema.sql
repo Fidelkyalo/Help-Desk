@@ -254,6 +254,12 @@ create policy "Admins can delete customer profiles"
   to authenticated
   using (is_admin() and id != auth.uid());
 
+-- Allow users to delete their own profile (self-service account deletion)
+create policy "Users can delete their own profile"
+  on public.profiles for delete
+  to authenticated
+  using (auth.uid() = id and not is_admin());
+
 -- ────────────────────────────────────────────────────────────────────────────
 -- 9. PASSWORD RESET REQUESTS TABLE
 -- ────────────────────────────────────────────────────────────────────────────
@@ -291,8 +297,22 @@ create policy "Users can submit their own password reset request"
   to authenticated
   with check (auth.uid() = user_id);
 
+-- ────────────────────────────────────────────────────────────────────────────
+-- 10. FIX: ALLOW USERS TO DELETE THEIR OWN PROFILE (self-service account deletion)
+-- ────────────────────────────────────────────────────────────────────────────
+-- Without this policy, the RLS on profiles blocks customer self-deletion.
+-- The delete() call returns no error but also deletes 0 rows, making the app
+-- think deletion succeeded while the profile (and login access) still exists.
+-- Run this in your Supabase SQL editor if you already applied the schema above.
+
+create policy if not exists "Users can delete their own profile"
+  on public.profiles for delete
+  to authenticated
+  using (auth.uid() = id and not is_admin());
+
+
+
 -- Add temp_password columns to profiles for admin-set passwords
 alter table public.profiles
   add column if not exists temp_password text,
   add column if not exists temp_password_set_at timestamp with time zone;
-

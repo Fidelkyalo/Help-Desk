@@ -470,8 +470,17 @@
         localStorage.removeItem('db_active_session');
       } else {
         // Live Supabase: delete profile row (cascades tickets/replies via FK)
-        const { error } = await supabaseClient.from('profiles').delete().eq('id', userId);
+        // Use select() to get back the deleted rows so we can confirm deletion actually happened.
+        const { data: deleted, error } = await supabaseClient
+          .from('profiles')
+          .delete()
+          .eq('id', userId)
+          .select('id');
         if (error) throw error;
+        // If no rows were returned, RLS blocked the delete — the profile still exists.
+        if (!deleted || deleted.length === 0) {
+          throw new Error('Account deletion was blocked. Please contact support.');
+        }
         // Sign out the Supabase Auth session so the JWT is invalidated
         await supabaseClient.auth.signOut();
         // Also store a local deleted-ids marker as a belt-and-suspenders guard

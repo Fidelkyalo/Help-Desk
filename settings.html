@@ -472,7 +472,13 @@
         // Live Supabase: delete profile row (cascades tickets/replies via FK)
         const { error } = await supabaseClient.from('profiles').delete().eq('id', userId);
         if (error) throw error;
+        // Sign out the Supabase Auth session so the JWT is invalidated
         await supabaseClient.auth.signOut();
+        // Also store a local deleted-ids marker as a belt-and-suspenders guard
+        // in case the auth token is cached and getSession() still returns it briefly
+        const deletedIds = JSON.parse(localStorage.getItem('db_deleted_ids') || '[]');
+        if (!deletedIds.includes(userId)) deletedIds.push(userId);
+        localStorage.setItem('db_deleted_ids', JSON.stringify(deletedIds));
       }
 
       showToast('Your account has been permanently deleted.', 'success');

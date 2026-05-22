@@ -41,6 +41,13 @@ async function requireAuth() {
   // For live Supabase: if the profile row is missing the account was deleted.
   // Sign out and redirect rather than letting them reach the dashboard.
   if (!window.isDemoMode) {
+    // Check local deleted-ids marker first (fast, no network round-trip)
+    const deletedIds = JSON.parse(localStorage.getItem('db_deleted_ids') || '[]');
+    if (deletedIds.includes(session.user.id)) {
+      await supabaseClient.auth.signOut();
+      window.location.href = getRelativePath('index.html');
+      return null;
+    }
     const { data: profileCheck } = await supabaseClient
       .from('profiles')
       .select('id')
@@ -69,10 +76,33 @@ async function getUserRole(userId) {
 
 // ── Redirect by Role (with suspension check) ─────────────────
 async function redirectByRole(session) {
-  const profile = await getCurrentProfile();
+  // Raw profile lookup — no self-healing — so deleted accounts are blocked here too
+  let profile = null;
+  if (window.isDemoMode) {
+    const deletedIds = JSON.parse(localStorage.getItem('db_deleted_ids') || '[]');
+    if (deletedIds.includes(session.user.id)) {
+      await supabaseClient.auth.signOut();
+      return; // stay on login page
+    }
+    const profiles = JSON.parse(localStorage.getItem('db_profiles') || '[]');
+    profile = profiles.find(p => p.id === session.user.id) || null;
+  } else {
+    const { data: profileData } = await supabaseClient
+      .from('profiles')
+      .select('*')
+      .eq('id', session.user.id)
+      .single();
+    profile = profileData || null;
+  }
+
+  // No profile = account was deleted — kill session and stay on login page
+  if (!profile) {
+    await supabaseClient.auth.signOut();
+    return;
+  }
 
   // If user account is suspended, block immediately at login
-  if (profile && profile.role !== 'admin' && profile.suspended) {
+  if (profile.role !== 'admin' && profile.suspended) {
     const now   = new Date();
     const until = profile.suspension_until ? new Date(profile.suspension_until) : null;
 
@@ -91,8 +121,7 @@ async function redirectByRole(session) {
     }
   }
 
-  const role = profile ? profile.role : await getUserRole(session.user.id);
-  if (role === 'admin') {
+  if (profile.role === 'admin') {
     window.location.href = getRelativePath('admin/dashboard.html');
   } else {
     window.location.href = getRelativePath('dashboard.html');
@@ -196,31 +225,35 @@ async function getCurrentProfile() {
     .single();
 
   if (error) {
+    // Self-healing: only attempt to recreate a profile for known admin accounts
+    // in live Supabase mode. Never self-heal for regular users — a missing profile
+    // means the account was deleted and the auth session is stale.
     if (!window.isDemoMode) {
-      console.log('Profile row missing in database. Initializing self-healing recovery...');
-      try {
-        const userMeta = session.user.user_metadata || {};
-        const isOfficialAdmin = session.user.email === 'fidelkm16@gmail.com' ||
-                                session.user.email === 'admin@helpdesk.com' ||
-                                session.user.email.includes('admin');
-        const newProfile = {
-          id: session.user.id,
-          email: session.user.email,
-          full_name: userMeta.full_name || 'User',
-          phone: userMeta.phone || '',
-          role: isOfficialAdmin ? 'admin' : 'user'
-        };
-        const { data: healedData, error: healError } = await supabaseClient
-          .from('profiles')
-          .insert([newProfile])
-          .select()
-          .single();
-        if (!healError) {
-          console.log('Profile successfully self-healed on the fly!');
-          return healedData;
+      const isOfficialAdmin = session.user.email === 'fidelkm16@gmail.com' ||
+                              session.user.email === 'admin@helpdesk.com';
+      if (isOfficialAdmin) {
+        console.log('Admin profile row missing. Initializing self-healing recovery...');
+        try {
+          const userMeta = session.user.user_metadata || {};
+          const newProfile = {
+            id: session.user.id,
+            email: session.user.email,
+            full_name: userMeta.full_name || 'Admin',
+            phone: userMeta.phone || '',
+            role: 'admin'
+          };
+          const { data: healedData, error: healError } = await supabaseClient
+            .from('profiles')
+            .insert([newProfile])
+            .select()
+            .single();
+          if (!healError) {
+            console.log('Admin profile successfully self-healed!');
+            return healedData;
+          }
+        } catch (err) {
+          console.error('Self-healing error:', err);
         }
-      } catch (err) {
-        console.error('Self-healing error:', err);
       }
     }
     return null;
@@ -605,6 +638,10 @@ async function requireCustomer() {
   const session = await requireAuth();
   if (!session) return null;
 
+  // requireAuth() already blocks deleted accounts via raw profile check,
+  // but we still need the full profile object for role/suspension checks.
+  // Use getCurrentProfile() here — it's safe because requireAuth() already
+  // confirmed the profile row exists before we reach this point.
   const profile = await getCurrentProfile();
 
   // Redirect admins to the admin portal

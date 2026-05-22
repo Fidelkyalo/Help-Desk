@@ -28,6 +28,14 @@ async function requireAuth() {
       window.location.href = getRelativePath('index.html');
       return null;
     }
+    // Also verify the profile row still exists (belt-and-suspenders for demo mode)
+    const profiles = JSON.parse(localStorage.getItem('db_profiles') || '[]');
+    const profileExists = profiles.some(p => p.id === session.user.id);
+    if (!profileExists) {
+      await supabaseClient.auth.signOut();
+      window.location.href = getRelativePath('index.html');
+      return null;
+    }
   }
 
   // For live Supabase: if the profile row is missing the account was deleted.
@@ -116,12 +124,33 @@ async function login(email, password) {
   // In live Supabase the auth user survives a profile delete (anon key
   // cannot delete auth users), so we must gate on the profile row.
   if (data && data.session) {
-    const profile = await getCurrentProfile();
+    // Use a raw profile lookup (no self-healing) so a deleted account
+    // is never silently recreated during the login flow.
+    let profile = null;
+    if (window.isDemoMode) {
+      // Demo mode: check deleted-ids list and profile store directly
+      const deletedIds = JSON.parse(localStorage.getItem('db_deleted_ids') || '[]');
+      if (deletedIds.includes(data.session.user.id)) {
+        await supabaseClient.auth.signOut();
+        const deletedError = new Error('This account no longer exists. Please create a new account to continue.');
+        throw deletedError;
+      }
+      const profiles = JSON.parse(localStorage.getItem('db_profiles') || '[]');
+      profile = profiles.find(p => p.id === data.session.user.id) || null;
+    } else {
+      // Live Supabase: query the profile row directly without self-healing
+      const { data: profileData } = await supabaseClient
+        .from('profiles')
+        .select('*')
+        .eq('id', data.session.user.id)
+        .single();
+      profile = profileData || null;
+    }
 
     // No profile row means the account was deleted — block immediately
     if (!profile) {
       await supabaseClient.auth.signOut();
-      const deletedError = new Error('This account no longer exists.');
+      const deletedError = new Error('This account no longer exists. Please create a new account to continue.');
       throw deletedError;
     }
 

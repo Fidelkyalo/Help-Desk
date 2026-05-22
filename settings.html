@@ -462,6 +462,11 @@
         localStorage.setItem('db_profiles', JSON.stringify(
           profiles.filter(p => p.id !== userId)
         ));
+        // Mark the account as deleted so any stale session or credential
+        // cannot be used to log back in (belt-and-suspenders)
+        const deletedIds = JSON.parse(localStorage.getItem('db_deleted_ids') || '[]');
+        if (!deletedIds.includes(userId)) deletedIds.push(userId);
+        localStorage.setItem('db_deleted_ids', JSON.stringify(deletedIds));
         localStorage.removeItem('db_active_session');
       } else {
         // Live Supabase: delete profile row (cascades tickets/replies via FK)

@@ -18,6 +18,33 @@ async function requireAuth() {
     window.location.href = getRelativePath('index.html');
     return null;
   }
+
+  // In demo mode, also check the deleted-ids list so a stale session
+  // for a deleted account is rejected immediately on page load.
+  if (window.isDemoMode) {
+    const deletedIds = JSON.parse(localStorage.getItem('db_deleted_ids') || '[]');
+    if (deletedIds.includes(session.user.id)) {
+      await supabaseClient.auth.signOut();
+      window.location.href = getRelativePath('index.html');
+      return null;
+    }
+  }
+
+  // For live Supabase: if the profile row is missing the account was deleted.
+  // Sign out and redirect rather than letting them reach the dashboard.
+  if (!window.isDemoMode) {
+    const { data: profileCheck } = await supabaseClient
+      .from('profiles')
+      .select('id')
+      .eq('id', session.user.id)
+      .single();
+    if (!profileCheck) {
+      await supabaseClient.auth.signOut();
+      window.location.href = getRelativePath('index.html');
+      return null;
+    }
+  }
+
   return session;
 }
 
@@ -85,10 +112,20 @@ async function login(email, password) {
   });
   if (error) throw error;
 
-  // After credentials are verified, check suspension status before allowing access
+  // After credentials are verified, check that the profile still exists.
+  // In live Supabase the auth user survives a profile delete (anon key
+  // cannot delete auth users), so we must gate on the profile row.
   if (data && data.session) {
     const profile = await getCurrentProfile();
-    if (profile && profile.role !== 'admin' && profile.suspended) {
+
+    // No profile row means the account was deleted — block immediately
+    if (!profile) {
+      await supabaseClient.auth.signOut();
+      const deletedError = new Error('This account no longer exists.');
+      throw deletedError;
+    }
+
+    if (profile.role !== 'admin' && profile.suspended) {
       const now   = new Date();
       const until = profile.suspension_until ? new Date(profile.suspension_until) : null;
       if (!until || until > now) {

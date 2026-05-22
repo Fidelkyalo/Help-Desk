@@ -898,6 +898,21 @@ ALTER TABLE public.profiles
         localStorage.setItem('db_auth_credentials', JSON.stringify(creds.filter(c => c.id !== customerId)));
         const profiles = JSON.parse(localStorage.getItem('db_profiles')) || [];
         localStorage.setItem('db_profiles', JSON.stringify(profiles.filter(p => p.id !== customerId)));
+        // Also invalidate any active session belonging to the deleted user
+        const activeSession = localStorage.getItem('db_active_session');
+        if (activeSession) {
+          try {
+            const parsed = JSON.parse(activeSession);
+            if (parsed.user && parsed.user.id === customerId) {
+              localStorage.removeItem('db_active_session');
+            }
+          } catch (_) {}
+        }
+        // Mark the account as deleted so login is blocked even if credentials
+        // somehow survive (belt-and-suspenders)
+        const deletedIds = JSON.parse(localStorage.getItem('db_deleted_ids') || '[]');
+        if (!deletedIds.includes(customerId)) deletedIds.push(customerId);
+        localStorage.setItem('db_deleted_ids', JSON.stringify(deletedIds));
       } else {
         const { error } = await supabaseClient.from('profiles').delete().eq('id', customerId);
         if (error) throw error;

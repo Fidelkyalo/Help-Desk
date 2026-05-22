@@ -290,7 +290,18 @@ class MockAuth {
     
     if (!match) return { data: null, error: { message: 'Invalid credentials. Try: user@helpdesk.com / password123 or admin@helpdesk.com / password123' } };
 
+    // Block login if the account has been deleted
+    const deletedIds = JSON.parse(localStorage.getItem('db_deleted_ids') || '[]');
+    if (deletedIds.includes(match.id)) {
+      return { data: null, error: { message: 'This account no longer exists.' } };
+    }
+
+    // Block login if the profile row is missing (deleted)
     const profile = profiles.find(p => p.id === match.id);
+    if (!profile) {
+      return { data: null, error: { message: 'This account no longer exists.' } };
+    }
+
     const session = {
       user: { id: match.id, email: match.email, role: profile?.role || 'user' },
       access_token: 'mock-session-token-' + match.id

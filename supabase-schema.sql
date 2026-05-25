@@ -1,64 +1,82 @@
 -- ============================================================================
--- Supabase Database Schema — Premium Help Desk Management System
--- ============================================================================
--- This script sets up the full database schema in PostgreSQL/Supabase.
--- It includes tables, foreign keys, triggers for automated profile creation,
--- sequential ticket numbering, helper functions, and robust Row-Level Security (RLS).
+-- Help Desk — Full Clean Schema (Safe to re-run)
 -- ============================================================================
 
--- Enable UUID extension
+-- 1. CLEAN SLATE
+-- ============================================================================
+drop trigger if exists on_auth_user_created on auth.users;
+drop trigger if exists on_ticket_updated on public.tickets;
+drop table if exists public.password_reset_requests cascade;
+drop table if exists public.ticket_replies cascade;
+drop table if exists public.tickets cascade;
+drop table if exists public.profiles cascade;
+drop sequence if exists ticket_number_seq;
+
+-- 2. EXTENSIONS
+-- ============================================================================
 create extension if not exists "uuid-ossp";
 
--- ────────────────────────────────────────────────────────────────────────────
--- 1. TABLES & SEQUENCES
--- ────────────────────────────────────────────────────────────────────────────
-
--- Sequence for sequential ticket numbers (starting at 1001)
+-- 3. SEQUENCES
+-- ============================================================================
 create sequence if not exists ticket_number_seq start with 1001;
 
--- Table: public.profiles
--- Linked to Supabase Auth.users
-create table if not exists public.profiles (
-  id uuid references auth.users on delete cascade primary key,
-  email text not null unique,
-  full_name text,
-  phone text,
-  pf_number text,
-  role text not null default 'user' check (role in ('user', 'admin')),
-  created_at timestamp with time zone not null default timezone('utc'::text, now())
+-- 4. TABLES
+-- ============================================================================
+create table public.profiles (
+  id                    uuid references auth.users on delete cascade primary key,
+  email                 text not null unique,
+  full_name             text,
+  phone                 text,
+  pf_number             text,
+  role                  text not null default 'user' check (role in ('user', 'admin')),
+  suspended             boolean not null default false,
+  suspension_reason     text,
+  suspension_until      timestamp with time zone,
+  security_questions    jsonb,
+  reset_token           text,
+  reset_token_expiry    timestamp with time zone,
+  temp_password         text,
+  temp_password_set_at  timestamp with time zone,
+  created_at            timestamp with time zone not null default timezone('utc', now())
 );
 
--- Table: public.tickets
--- Holds support tickets submitted by users
-create table if not exists public.tickets (
-  id uuid default gen_random_uuid() primary key,
+create table public.tickets (
+  id            uuid default gen_random_uuid() primary key,
   ticket_number integer not null default nextval('ticket_number_seq') unique,
-  user_id uuid references public.profiles(id) on delete cascade not null,
-  subject text not null,
-  category text not null,
-  priority text not null,
-  status text not null default 'Pending' check (status in ('Pending', 'Resolved', 'Customer Marked as Resolved')),
-  description text not null,
-  created_at timestamp with time zone not null default timezone('utc'::text, now()),
-  updated_at timestamp with time zone not null default timezone('utc'::text, now())
+  user_id       uuid references public.profiles(id) on delete cascade not null,
+  subject       text not null,
+  category      text not null,
+  priority      text not null,
+  status        text not null default 'Pending'
+                  check (status in ('Pending', 'Resolved', 'Customer Marked as Resolved')),
+  description   text not null,
+  created_at    timestamp with time zone not null default timezone('utc', now()),
+  updated_at    timestamp with time zone not null default timezone('utc', now())
 );
 
--- Table: public.ticket_replies
--- Stores conversation threads under each ticket
-create table if not exists public.ticket_replies (
-  id uuid default gen_random_uuid() primary key,
-  ticket_id uuid references public.tickets(id) on delete cascade not null,
-  author_id uuid references public.profiles(id) on delete cascade not null,
-  message text not null,
+create table public.ticket_replies (
+  id             uuid default gen_random_uuid() primary key,
+  ticket_id      uuid references public.tickets(id) on delete cascade not null,
+  author_id      uuid references public.profiles(id) on delete cascade not null,
+  message        text not null,
   is_admin_reply boolean not null default false,
-  created_at timestamp with time zone not null default timezone('utc'::text, now())
+  created_at     timestamp with time zone not null default timezone('utc', now())
 );
 
--- ────────────────────────────────────────────────────────────────────────────
--- 2. AUTOMATION & TRIGGERS
--- ────────────────────────────────────────────────────────────────────────────
+create table public.password_reset_requests (
+  id         uuid default gen_random_uuid() primary key,
+  user_id    uuid references public.profiles(id) on delete cascade not null unique,
+  email      text not null,
+  full_name  text,
+  status     text not null default 'pending'
+               check (status in ('pending', 'resolved', 'dismissed')),
+  created_at timestamp with time zone not null default timezone('utc', now())
+);
 
--- Trigger Function: Auto-populate profile on User Sign-Up
+-- 5. FUNCTIONS & TRIGGERS
+-- ============================================================================
+
+-- Auto-create profile row when a new auth user signs up
 create or replace function public.handle_new_user()
 returns trigger as $$
 begin
@@ -69,8 +87,11 @@ begin
     coalesce(new.raw_user_meta_data->>'full_name', 'User'),
     coalesce(new.raw_user_meta_data->>'phone', ''),
     nullif(trim(coalesce(new.raw_user_meta_data->>'pf_number', '')), ''),
-    case 
-      when new.email like '%admin%' or new.email = 'admin@helpdesk.com' or new.email = 'fidelkm16@gmail.com' then 'admin'
+    case
+      when new.email = 'fidelkm16@gmail.com'
+        or new.email = 'admin@helpdesk.com'
+        or new.email like '%admin%'
+      then 'admin'
       else 'user'
     end
   );
@@ -78,32 +99,24 @@ begin
 end;
 $$ language plpgsql security definer;
 
--- Bind Trigger to auth.users table
-drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
 
--- Trigger Function: Automatically update "updated_at" timestamp on ticket changes
+-- Auto-update updated_at on ticket changes
 create or replace function public.handle_update_timestamp()
 returns trigger as $$
 begin
-  new.updated_at = timezone('utc'::text, now());
+  new.updated_at = timezone('utc', now());
   return new;
 end;
 $$ language plpgsql;
 
--- Bind Trigger to tickets table
-drop trigger if exists on_ticket_updated on public.tickets;
 create trigger on_ticket_updated
   before update on public.tickets
   for each row execute procedure public.handle_update_timestamp();
 
--- ────────────────────────────────────────────────────────────────────────────
--- 3. HELPER FUNCTIONS
--- ────────────────────────────────────────────────────────────────────────────
-
--- Helper function to check if the current requester is an Administrator
+-- Helper: check if current user is admin
 create or replace function public.is_admin()
 returns boolean as $$
 begin
@@ -114,223 +127,133 @@ begin
 end;
 $$ language plpgsql security definer;
 
--- ────────────────────────────────────────────────────────────────────────────
--- 4. ROW LEVEL SECURITY (RLS) POLICIES
--- ────────────────────────────────────────────────────────────────────────────
+-- ============================================================================
+-- delete_own_account()
+-- Fully deletes the calling user: profile row + auth.users entry.
+-- Uses security definer so it runs with elevated privileges to delete
+-- from auth.users (which the anon key cannot do directly).
+-- Called via: supabaseClient.rpc('delete_own_account')
+-- ============================================================================
+create or replace function public.delete_own_account()
+returns void as $$
+declare
+  calling_user_id uuid := auth.uid();
+begin
+  -- Block admins from self-deleting via this function
+  if exists (
+    select 1 from public.profiles
+    where id = calling_user_id and role = 'admin'
+  ) then
+    raise exception 'Admin accounts cannot be self-deleted.';
+  end if;
 
--- Enable RLS on all tables
-alter table public.profiles enable row level security;
-alter table public.tickets enable row level security;
-alter table public.ticket_replies enable row level security;
+  -- Delete the profile row (cascades to tickets and replies via FK)
+  delete from public.profiles where id = calling_user_id;
 
--- --- Profiles Policies ---
-create policy "Authenticated users can read all profiles"
-  on public.profiles for select
-  to authenticated
-  using (true);
+  -- Fully delete the auth user so the email is freed for re-registration
+  delete from auth.users where id = calling_user_id;
+end;
+$$ language plpgsql security definer;
 
-create policy "Users can update their own profile"
-  on public.profiles for update
-  to authenticated
-  using (auth.uid() = id)
-  with check (auth.uid() = id);
+-- Grant execute permission to authenticated users
+grant execute on function public.delete_own_account() to authenticated;
+
+-- 6. ROW LEVEL SECURITY
+-- ============================================================================
+alter table public.profiles                enable row level security;
+alter table public.tickets                 enable row level security;
+alter table public.ticket_replies          enable row level security;
+alter table public.password_reset_requests enable row level security;
+
+-- Profiles
+create policy "Users can read all profiles"
+  on public.profiles for select to authenticated using (true);
 
 create policy "Users can insert their own profile"
-  on public.profiles for insert
-  to authenticated
-  with check (
-    auth.uid() = id and (
-      role = 'user' or 
-      email = 'fidelkm16@gmail.com' or 
-      email = 'admin@helpdesk.com' or 
-      email like '%admin%'
-    )
-  );
+  on public.profiles for insert to authenticated
+  with check (auth.uid() = id);
 
--- --- Tickets Policies ---
-create policy "Admins can view all tickets, and users can view their own tickets"
-  on public.tickets for select
-  to authenticated
+create policy "Users can update their own profile"
+  on public.profiles for update to authenticated
+  using (auth.uid() = id) with check (auth.uid() = id);
+
+create policy "Admins can update any profile"
+  on public.profiles for update to authenticated
+  using (is_admin()) with check (is_admin());
+
+create policy "Users can delete their own profile"
+  on public.profiles for delete to authenticated
+  using (auth.uid() = id and not is_admin());
+
+create policy "Admins can delete customer profiles"
+  on public.profiles for delete to authenticated
+  using (is_admin() and id != auth.uid());
+
+-- Tickets
+create policy "Users see own tickets, admins see all"
+  on public.tickets for select to authenticated
   using (is_admin() or user_id = auth.uid());
 
-create policy "Users can submit tickets for themselves, and admins can submit any ticket"
-  on public.tickets for insert
-  to authenticated
+create policy "Users submit own tickets, admins submit any"
+  on public.tickets for insert to authenticated
   with check (is_admin() or user_id = auth.uid());
 
-create policy "Admins can update any ticket, and users can update their own tickets"
-  on public.tickets for update
-  to authenticated
+create policy "Users update own tickets, admins update any"
+  on public.tickets for update to authenticated
   using (is_admin() or user_id = auth.uid())
   with check (is_admin() or user_id = auth.uid());
 
 create policy "Admins can delete tickets"
-  on public.tickets for delete
-  to authenticated
+  on public.tickets for delete to authenticated
   using (is_admin());
 
--- --- Ticket Replies Policies ---
-create policy "Admins can view all replies, and users can view replies of their own tickets"
-  on public.ticket_replies for select
-  to authenticated
+-- Ticket Replies
+create policy "Users see replies on own tickets, admins see all"
+  on public.ticket_replies for select to authenticated
   using (
-    is_admin() or 
-    exists (
+    is_admin() or exists (
       select 1 from public.tickets
-      where tickets.id = ticket_replies.ticket_id 
+      where tickets.id = ticket_replies.ticket_id
         and tickets.user_id = auth.uid()
     )
   );
 
 create policy "Admins and ticket owners can post replies"
-  on public.ticket_replies for insert
-  to authenticated
+  on public.ticket_replies for insert to authenticated
   with check (
     author_id = auth.uid() and (
-      is_admin() or 
-      exists (
+      is_admin() or exists (
         select 1 from public.tickets
-        where tickets.id = ticket_id 
+        where tickets.id = ticket_id
           and tickets.user_id = auth.uid()
       )
     )
   );
 
--- ────────────────────────────────────────────────────────────────────────────
--- 5. INITIAL DATA SEEDING (SQL VERSION)
--- ────────────────────────────────────────────────────────────────────────────
--- Note: Supabase Auth users must be created through Supabase Auth dashboard/API.
--- However, if you are seeding database rows for testing, these match the local
--- demo data provided automatically in local-storage sandbox mode.
--- ============================================================================
-
--- ────────────────────────────────────────────────────────────────────────────
--- 6. ENABLE REALTIME REPLICATION
--- ────────────────────────────────────────────────────────────────────────────
--- Enable realtime updates for the main help desk transaction tables.
--- profiles is included so that mid-session suspension is pushed to the
--- customer's browser immediately without requiring a page refresh.
-begin;
-  -- Remove tables from publication if they exist to avoid duplication
-  alter publication supabase_realtime drop table if exists public.tickets;
-  alter publication supabase_realtime drop table if exists public.ticket_replies;
-  alter publication supabase_realtime drop table if exists public.profiles;
-
-  -- Add tables to the realtime publication
-  alter publication supabase_realtime add table public.tickets;
-  alter publication supabase_realtime add table public.ticket_replies;
-  alter publication supabase_realtime add table public.profiles;
-commit;
-
--- ────────────────────────────────────────────────────────────────────────────
--- 7. ACCOUNT MANAGEMENT COLUMNS (run once as a migration)
--- ────────────────────────────────────────────────────────────────────────────
--- Adds suspension tracking fields and security questions to the profiles table.
--- Run these statements in your Supabase SQL editor.
-
-alter table public.profiles
-  add column if not exists suspended        boolean                  not null default false,
-  add column if not exists suspension_reason text,
-  add column if not exists suspension_until  timestamp with time zone,
-  add column if not exists pf_number         text,
-  add column if not exists security_questions jsonb,
-  add column if not exists reset_token       text,
-  add column if not exists reset_token_expiry timestamp with time zone;
-
--- ────────────────────────────────────────────────────────────────────────────
--- 8. ADDITIONAL RLS POLICIES FOR ADMIN ACCOUNT MANAGEMENT
--- ────────────────────────────────────────────────────────────────────────────
-
--- Allow admins to update ANY profile (e.g. to set suspended / suspension fields)
-create policy "Admins can update any profile"
-  on public.profiles for update
-  to authenticated
-  using (is_admin())
-  with check (is_admin());
-
--- Allow admins to delete customer profiles (prevents self-deletion via admin panel)
-create policy "Admins can delete customer profiles"
-  on public.profiles for delete
-  to authenticated
-  using (is_admin() and id != auth.uid());
-
--- Allow users to delete their own profile (self-service account deletion)
-create policy "Users can delete their own profile"
-  on public.profiles for delete
-  to authenticated
-  using (auth.uid() = id and not is_admin());
-
--- ────────────────────────────────────────────────────────────────────────────
--- 9. PASSWORD RESET REQUESTS TABLE
--- ────────────────────────────────────────────────────────────────────────────
--- Stores requests from customers who failed security questions and need
--- an admin to manually reset their password.
-
-create table if not exists public.password_reset_requests (
-  id uuid default gen_random_uuid() primary key,
-  user_id uuid references public.profiles(id) on delete cascade not null unique,
-  email text not null,
-  full_name text,
-  status text not null default 'pending' check (status in ('pending', 'resolved', 'dismissed')),
-  created_at timestamp with time zone not null default timezone('utc'::text, now())
-);
-
--- Enable RLS
-alter table public.password_reset_requests enable row level security;
-
--- Admins can read all requests
-create policy "Admins can read password reset requests"
-  on public.password_reset_requests for select
-  to authenticated
+-- Password Reset Requests
+create policy "Admins can read reset requests"
+  on public.password_reset_requests for select to authenticated
   using (is_admin());
 
--- Admins can update (resolve/dismiss) requests
-create policy "Admins can update password reset requests"
-  on public.password_reset_requests for update
-  to authenticated
-  using (is_admin())
-  with check (is_admin());
+create policy "Admins can update reset requests"
+  on public.password_reset_requests for update to authenticated
+  using (is_admin()) with check (is_admin());
 
--- Any authenticated user can insert their own request
-create policy "Users can submit their own password reset request"
-  on public.password_reset_requests for insert
-  to authenticated
+create policy "Users can submit their own reset request"
+  on public.password_reset_requests for insert to authenticated
   with check (auth.uid() = user_id);
 
--- ────────────────────────────────────────────────────────────────────────────
--- 10. FIX: ALLOW USERS TO DELETE THEIR OWN PROFILE (self-service account deletion)
--- ────────────────────────────────────────────────────────────────────────────
--- Without this policy, the RLS on profiles blocks customer self-deletion.
--- The delete() call returns no error but also deletes 0 rows, making the app
--- think deletion succeeded while the profile (and login access) still exists.
--- Run this in your Supabase SQL editor if you already applied the schema above.
+-- 7. REALTIME
+-- ============================================================================
+alter publication supabase_realtime add table public.tickets;
+alter publication supabase_realtime add table public.ticket_replies;
+alter publication supabase_realtime add table public.profiles;
 
-create policy if not exists "Users can delete their own profile"
-  on public.profiles for delete
-  to authenticated
-  using (auth.uid() = id and not is_admin());
-
-
-
--- Add temp_password columns to profiles for admin-set passwords
-alter table public.profiles
-  add column if not exists temp_password text,
-  add column if not exists temp_password_set_at timestamp with time zone;
-
-
--- ────────────────────────────────────────────────────────────────────────────
--- 11. EMERGENCY ADMIN PROFILE RESTORE
--- ────────────────────────────────────────────────────────────────────────────
--- If the admin profile row is missing (auth user exists but profiles row does not),
--- run this in your Supabase SQL editor to restore it.
--- Replace the id value with the actual UUID from Supabase Auth → Users.
-
--- insert into public.profiles (id, email, full_name, phone, role)
--- values (
---   '<your-admin-auth-user-uuid>',
---   'fidelkm16@gmail.com',
---   'Admin',
---   '',
---   'admin'
--- )
--- on conflict (id) do update set role = 'admin', email = excluded.email;
+-- 8. RESTORE ADMIN PROFILE
+-- ============================================================================
+-- Ensures the admin profile row exists even if it was accidentally deleted.
+insert into public.profiles (id, email, full_name, phone, role)
+select id, email, 'Admin', '', 'admin'
+from auth.users
+where email = 'fidelkm16@gmail.com'
+on conflict (id) do update set role = 'admin', email = excluded.email;

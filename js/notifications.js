@@ -229,10 +229,10 @@ async function notifyTicketSubmitted({ ticket, userEmail, userPhone, userName })
 }
 
 // ── Notify on Admin Reply ─────────────────────────────────────
-async function notifyAdminReplied({ ticket, userEmail, userPhone, userName }) {
+async function notifyAdminReplied({ ticket, userEmail, userPhone, userName, adminEmail }) {
   const formattedNo = formatTicketNumber(ticket.ticket_number, ticket.id);
   const subject = `New Response on Ticket ${formattedNo}`;
-  const message = `Hi ${userName || 'Member'}, an admin has responded to your ticket "${ticket.subject}". Log in to view the response.`;
+  const message = `Hi ${userName || 'Member'}, an admin has responded to your ticket "${ticket.subject}". Log in to view the response: https://help-desk-taupe.vercel.app/ticket-detail?id=${ticket.id}`;
 
   // Show on customer's screen
   showSimulatedNotification('email', userEmail, subject, message);
@@ -242,7 +242,7 @@ async function notifyAdminReplied({ ticket, userEmail, userPhone, userName }) {
   }
 
   await Promise.allSettled([
-    callEdgeFunction('send-email', { to: userEmail, subject, message }),
+    callEdgeFunction('send-email', { to: userEmail, subject, message, replyTo: adminEmail || null }),
     callEdgeFunction('send-sms',   { to: userPhone, message }),
     callEdgeFunction('send-whatsapp', { to: userPhone, message })
   ]);
@@ -252,7 +252,7 @@ async function notifyAdminReplied({ ticket, userEmail, userPhone, userName }) {
 async function notifyTicketStatusChanged({ ticket, userEmail, userPhone, userName }) {
   const formattedNo = formatTicketNumber(ticket.ticket_number, ticket.id);
   const subject = `Ticket ${formattedNo} Status Updated`;
-  const message = `Hi ${userName || 'Member'}, your ticket "${ticket.subject}" status has been updated to: ${ticket.status}.`;
+  const message = `Hi ${userName || 'Member'}, your ticket "${ticket.subject}" status has been updated to: ${ticket.status}. Log in to view details: https://help-desk-taupe.vercel.app/ticket-detail?id=${ticket.id}`;
 
   showSimulatedNotification('email', userEmail, subject, message);
   if (userPhone) {
@@ -270,8 +270,8 @@ async function notifyTicketStatusChanged({ ticket, userEmail, userPhone, userNam
 // ── Notify on Ticket Resolved ─────────────────────────────────
 async function notifyTicketResolved({ ticket, userEmail, userPhone, userName }) {
   const formattedNo = formatTicketNumber(ticket.ticket_number, ticket.id);
-  const subject = `Ticket ${formattedNo} Resolved`;
-  const message = `Hi ${userName}, your support ticket "${ticket.subject}" has been resolved. If you need further help, please submit a new request.`;
+  const subject = `Ticket ${formattedNo} Resolved ✅`;
+  const message = `Hi ${userName || 'Member'}, your support ticket "${ticket.subject}" has been resolved. If you need further help, please submit a new request at https://help-desk-taupe.vercel.app`;
 
   // Trigger visual dashboard simulators
   showSimulatedNotification('email', userEmail, subject, message);

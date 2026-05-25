@@ -331,7 +331,9 @@
         notifyAdminReplied({
           ticket,
           userEmail: ticket.profiles.email || 'user@example.com',
-          userName: ticket.profiles.full_name || 'Member'
+          userPhone: ticket.profiles.phone || '',
+          userName:  ticket.profiles.full_name || 'Member',
+          adminEmail: currentProfile?.email || currentUser?.email || null
         }).catch(err => console.error('Notification error:', err));
       }
 

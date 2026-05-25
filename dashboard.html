@@ -187,20 +187,31 @@
       if (payload && payload.eventType === 'UPDATE') {
         const oldT = payload.old;
         const newT = payload.new;
-        if (newT && newT.status === 'Resolved' && (!oldT || oldT.status !== 'Resolved')) {
-          // Toast resolution alert
+        if (!newT) return;
+
+        const userEmail = profile?.email || currentUser?.email || 'member@example.com';
+        const userPhone = profile?.phone || '+123456789';
+        const userName  = profile?.full_name || 'Member';
+
+        if (newT.status === 'Resolved' && (!oldT || oldT.status !== 'Resolved')) {
+          // Ticket resolved
           showToast(`✅ Your ticket ${formatTicketNumber(newT.ticket_number, newT.id)} has been resolved!`, 'success');
-
-          const userEmail = profile?.email || currentUser?.email || 'member@example.com';
-          const userPhone = profile?.phone || '+123456789';
-          const userName = profile?.full_name || 'Member';
-
           notifyTicketResolved({
             ticket: newT,
-            userEmail: userEmail,
-            userPhone: userPhone,
-            userName: userName
+            userEmail,
+            userPhone,
+            userName
           }).catch(err => console.error('Realtime resolution notification error:', err));
+
+        } else if (newT.status !== (oldT && oldT.status)) {
+          // Any other status change
+          showToast(`ℹ️ Ticket ${formatTicketNumber(newT.ticket_number, newT.id)} status updated to: ${newT.status}`, 'info');
+          notifyTicketStatusChanged({
+            ticket: newT,
+            userEmail,
+            userPhone,
+            userName
+          }).catch(err => console.error('Status change notification error:', err));
         }
       }
     });

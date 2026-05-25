@@ -150,12 +150,14 @@
       if (newReply.is_admin_reply) {
         showToast('💬 Admin replied to your ticket.', 'info');
         const userEmail = currentProfile?.email || currentUser?.email || 'member@example.com';
-        const userName = currentProfile?.full_name || 'Member';
+        const userPhone = currentProfile?.phone || '+123456789';
+        const userName  = currentProfile?.full_name || 'Member';
 
         notifyAdminReplied({
           ticket: ticket,
-          userEmail: userEmail,
-          userName: userName
+          userEmail,
+          userPhone,
+          userName
         }).catch(err => console.error('Realtime notification error:', err));
       }
     });

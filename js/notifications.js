@@ -229,15 +229,42 @@ async function notifyTicketSubmitted({ ticket, userEmail, userPhone, userName })
 }
 
 // ── Notify on Admin Reply ─────────────────────────────────────
-async function notifyAdminReplied({ ticket, userEmail, userName }) {
+async function notifyAdminReplied({ ticket, userEmail, userPhone, userName }) {
   const formattedNo = formatTicketNumber(ticket.ticket_number, ticket.id);
   const subject = `New Response on Ticket ${formattedNo}`;
-  const message = `Hi ${userName}, an admin has responded to your ticket "${ticket.subject}". Log in to view the response.`;
+  const message = `Hi ${userName || 'Member'}, an admin has responded to your ticket "${ticket.subject}". Log in to view the response.`;
 
-  // Trigger visual dashboard simulator
+  // Show on customer's screen
   showSimulatedNotification('email', userEmail, subject, message);
+  if (userPhone) {
+    setTimeout(() => showSimulatedNotification('sms', userPhone, null, message), 600);
+    setTimeout(() => showSimulatedNotification('whatsapp', userPhone, null, message), 1200);
+  }
 
-  await callEdgeFunction('send-email', { to: userEmail, subject, message });
+  await Promise.allSettled([
+    callEdgeFunction('send-email', { to: userEmail, subject, message }),
+    callEdgeFunction('send-sms',   { to: userPhone, message }),
+    callEdgeFunction('send-whatsapp', { to: userPhone, message })
+  ]);
+}
+
+// ── Notify on Status Change (non-resolved) ────────────────────
+async function notifyTicketStatusChanged({ ticket, userEmail, userPhone, userName }) {
+  const formattedNo = formatTicketNumber(ticket.ticket_number, ticket.id);
+  const subject = `Ticket ${formattedNo} Status Updated`;
+  const message = `Hi ${userName || 'Member'}, your ticket "${ticket.subject}" status has been updated to: ${ticket.status}.`;
+
+  showSimulatedNotification('email', userEmail, subject, message);
+  if (userPhone) {
+    setTimeout(() => showSimulatedNotification('sms', userPhone, null, message), 600);
+    setTimeout(() => showSimulatedNotification('whatsapp', userPhone, null, message), 1200);
+  }
+
+  await Promise.allSettled([
+    callEdgeFunction('send-email', { to: userEmail, subject, message }),
+    callEdgeFunction('send-sms',   { to: userPhone, message }),
+    callEdgeFunction('send-whatsapp', { to: userPhone, message })
+  ]);
 }
 
 // ── Notify on Ticket Resolved ─────────────────────────────────

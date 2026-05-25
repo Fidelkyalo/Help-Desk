@@ -687,7 +687,7 @@
         <td>${statusBadge(t.status)}</td>
         <td class="text-sm text-muted">${formatDate(t.created_at)}</td>
         <td style="text-align:right;padding-right:1.5rem;">
-          <a href="ticket-detail.html?id=${t.id}" onclick="event.preventDefault();navigateTo('ticket-detail.html','${t.id}');"
+          <a href="${pageHref('ticket-detail.html', t.id)}" onclick="event.preventDefault();navigateTo('ticket-detail.html','${t.id}');"
             class="btn btn--primary btn--sm" style="padding:0.3rem 0.75rem;font-size:0.75rem;display:inline-flex;align-items:center;gap:0.25rem;font-weight:600;text-transform:uppercase;letter-spacing:0.03em;">
             Review &nbsp;→
           </a>

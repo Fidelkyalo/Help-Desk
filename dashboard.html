@@ -241,7 +241,7 @@
       <tr>
         <td class="text-muted text-sm">${formatTicketNumber(t.ticket_number, t.id)}</td>
         <td class="ticket-table__subject">
-          <a href="ticket-detail.html?id=${t.id}" onclick="event.preventDefault(); navigateTo('ticket-detail.html', '${t.id}');" class="ticket-table__link">
+          <a href="${pageHref('ticket-detail.html', t.id)}" onclick="event.preventDefault(); navigateTo('ticket-detail.html', '${t.id}');" class="ticket-table__link">
             <span class="ticket-table__subject-text">${escapeHtml(t.subject)}</span>
           </a>
           <div class="ticket-table__meta">${escapeHtml(t.category)}</div>
@@ -264,7 +264,7 @@
       return;
     }
     container.innerHTML = tickets.map(t => `
-      <a href="ticket-detail.html?id=${t.id}" onclick="event.preventDefault(); navigateTo('ticket-detail.html', '${t.id}');" class="ticket-card">
+      <a href="${pageHref('ticket-detail.html', t.id)}" onclick="event.preventDefault(); navigateTo('ticket-detail.html', '${t.id}');" class="ticket-card">
         <div class="ticket-card__header">
           <div class="ticket-card__subject">${escapeHtml(t.subject)}</div>
           ${statusBadge(t.status)}

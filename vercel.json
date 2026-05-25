@@ -1,0 +1,25 @@
+{
+  "cleanUrls": false,
+  "trailingSlash": false,
+  "rewrites": [
+    { "source": "/ticket-detail", "destination": "/ticket-detail.html" },
+    { "source": "/ticket-new", "destination": "/ticket-new.html" },
+    { "source": "/dashboard", "destination": "/dashboard.html" },
+    { "source": "/settings", "destination": "/settings.html" },
+    { "source": "/register", "destination": "/register.html" },
+    { "source": "/admin/dashboard", "destination": "/admin/dashboard.html" },
+    { "source": "/admin/customers", "destination": "/admin/customers.html" },
+    { "source": "/admin/settings", "destination": "/admin/settings.html" },
+    { "source": "/admin/ticket-detail", "destination": "/admin/ticket-detail.html" }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
+        { "key": "Pragma", "value": "no-cache" },
+        { "key": "Expires", "value": "0" }
+      ]
+    }
+  ]
+}

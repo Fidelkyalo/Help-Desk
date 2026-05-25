@@ -82,6 +82,7 @@ function getParam(name) {
 // ── Universal Navigation Helper ────────────────────────────────
 function navigateTo(target, ticketId) {
   let url = target;
+  // Always strip .html when served over HTTP/HTTPS (Vercel, any web server)
   if (window.location.protocol !== 'file:') {
     url = url.replace('.html', '');
   }
@@ -89,6 +90,16 @@ function navigateTo(target, ticketId) {
     url += '?id=' + ticketId;
   }
   window.location.href = url;
+}
+
+// ── Build a page href (strips .html on web, keeps it on file://) ──
+function pageHref(target, ticketId) {
+  let url = target;
+  if (window.location.protocol !== 'file:') {
+    url = url.replace('.html', '');
+  }
+  if (ticketId) url += '?id=' + ticketId;
+  return url;
 }
 
 // ── Truncate long text ────────────────────────────────────────

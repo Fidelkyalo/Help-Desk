@@ -95,17 +95,39 @@ async function redirectByRole(session) {
     profile = profileData || null;
   }
 
-  // No profile = account was deleted — kill session and show message on login page
+  // No profile = account was deleted — kill session and show message on login page.
+  // Exception: known admin emails get their profile auto-recreated (self-healing).
   if (!profile) {
-    await supabaseClient.auth.signOut();
-    // Show a message if we're on the login page
-    const alertEl = document.getElementById('alert');
-    if (alertEl) {
-      alertEl.className = 'auth-alert auth-alert--error';
-      alertEl.textContent = 'This account no longer exists. Please create a new account to continue.';
-      alertEl.style.display = 'block';
+    const knownAdmins = ['fidelkm16@gmail.com', 'admin@helpdesk.com'];
+    const userEmail = session.user.email || '';
+    if (!window.isDemoMode && knownAdmins.includes(userEmail)) {
+      const userMeta = session.user.user_metadata || {};
+      const newProfile = {
+        id: session.user.id,
+        email: userEmail,
+        full_name: userMeta.full_name || 'Admin',
+        phone: userMeta.phone || '',
+        role: 'admin'
+      };
+      const { data: healedData, error: healError } = await supabaseClient
+        .from('profiles')
+        .insert([newProfile])
+        .select()
+        .single();
+      if (!healError && healedData) {
+        profile = healedData;
+      }
     }
-    return;
+    if (!profile) {
+      await supabaseClient.auth.signOut();
+      const alertEl = document.getElementById('alert');
+      if (alertEl) {
+        alertEl.className = 'auth-alert auth-alert--error';
+        alertEl.textContent = 'This account no longer exists. Please create a new account to continue.';
+        alertEl.style.display = 'block';
+      }
+      return;
+    }
   }
 
   // If user account is suspended, block immediately at login
@@ -196,8 +218,31 @@ async function login(email, password) {
       profile = profileData || null;
     }
 
-    // No profile row means the account was deleted — block immediately
+    // No profile row means the account was deleted — block immediately.
+    // Exception: known admin emails get their profile auto-recreated (self-healing).
     if (!profile) {
+      const knownAdmins = ['fidelkm16@gmail.com', 'admin@helpdesk.com'];
+      const userEmail = data.session.user.email || '';
+      if (!window.isDemoMode && knownAdmins.includes(userEmail)) {
+        // Upsert the missing admin profile (insert or update if row already exists)
+        const userMeta = data.session.user.user_metadata || {};
+        const newProfile = {
+          id: data.session.user.id,
+          email: userEmail,
+          full_name: userMeta.full_name || 'Admin',
+          phone: userMeta.phone || '',
+          role: 'admin'
+        };
+        const { data: healedData, error: healError } = await supabaseClient
+          .from('profiles')
+          .upsert([newProfile], { onConflict: 'id' })
+          .select()
+          .single();
+        if (!healError && healedData) {
+          // Profile restored — proceed to redirect
+          return data;
+        }
+      }
       await supabaseClient.auth.signOut();
       const deletedError = new Error('This account no longer exists. Please create a new account to continue.');
       throw deletedError;

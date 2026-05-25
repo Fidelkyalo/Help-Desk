@@ -316,3 +316,21 @@ create policy if not exists "Users can delete their own profile"
 alter table public.profiles
   add column if not exists temp_password text,
   add column if not exists temp_password_set_at timestamp with time zone;
+
+
+-- ────────────────────────────────────────────────────────────────────────────
+-- 11. EMERGENCY ADMIN PROFILE RESTORE
+-- ────────────────────────────────────────────────────────────────────────────
+-- If the admin profile row is missing (auth user exists but profiles row does not),
+-- run this in your Supabase SQL editor to restore it.
+-- Replace the id value with the actual UUID from Supabase Auth → Users.
+
+-- insert into public.profiles (id, email, full_name, phone, role)
+-- values (
+--   '<your-admin-auth-user-uuid>',
+--   'fidelkm16@gmail.com',
+--   'Admin',
+--   '',
+--   'admin'
+-- )
+-- on conflict (id) do update set role = 'admin', email = excluded.email;

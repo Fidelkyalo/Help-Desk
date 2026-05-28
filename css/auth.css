@@ -145,34 +145,26 @@
 /* ── Premium Auth Page Footer ──────────────────────────────── */
 .auth-page-footer {
   text-align: center;
-  font-size: 0.75rem;
-  color: var(--text-light);
-  margin-top: 0.5rem;
-  font-weight: 500;
   padding: 0 1rem;
-  line-height: 1.8;
+  margin-top: 0.5rem;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.15rem;
+  gap: 0.2rem;
 }
-.auth-page-footer .footer-brand {
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: var(--text);
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
+.auth-page-footer .footer-line1 {
+  font-size: 0.85rem; font-weight: 700; color: var(--text);
 }
-.auth-page-footer .footer-brand img {
-  width: 18px;
-  height: 18px;
-  object-fit: contain;
-  border-radius: 4px;
+.auth-page-footer .footer-line2 {
+  font-size: 0.8rem; font-weight: 600; color: var(--text-muted);
 }
-.auth-page-footer .footer-org { font-weight: 500; color: var(--text-muted); }
-.auth-page-footer .footer-name { font-weight: 600; color: var(--text-muted); }
-.auth-page-footer .footer-copy { font-size: 0.7rem; color: var(--text-light); }
+.auth-page-footer .footer-line3 {
+  font-size: 0.78rem; font-weight: 500; color: var(--text-muted);
+}
+.auth-page-footer .footer-copy {
+  font-size: 0.7rem; font-weight: 400; color: var(--text-light);
+  margin-top: 0.15rem;
+}
 
 /* ── Auth responsive ────────────────────────────────────────── */
 @media (max-width: 639px) {

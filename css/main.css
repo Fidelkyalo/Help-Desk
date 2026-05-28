@@ -288,17 +288,22 @@ p  { color: var(--text-muted); }
   padding: 1.25rem 2rem; border-top: 1px solid var(--border);
   background: var(--footer-bg);
   display: flex; flex-direction: column; align-items: center;
-  justify-content: center; gap: 0.35rem;
-  margin-top: auto; font-size: 0.8rem; color: var(--text-muted);
-  text-align: center;
+  justify-content: center; gap: 0.2rem;
+  margin-top: auto; text-align: center;
 }
-.app-footer__brand {
-  display: flex; align-items: center; justify-content: center;
-  gap: 0.35rem; font-weight: 700; font-size: 0.95rem; color: var(--text);
+.app-footer__line1 {
+  font-size: 0.85rem; font-weight: 700; color: var(--text);
 }
-.app-footer__org { font-weight: 500; }
-.app-footer__name { font-weight: 600; color: var(--text-muted); }
-.app-footer__copy { font-weight: 400; color: var(--text-light); font-size: 0.75rem; }
+.app-footer__line2 {
+  font-size: 0.8rem; font-weight: 600; color: var(--text-muted);
+}
+.app-footer__line3 {
+  font-size: 0.78rem; font-weight: 500; color: var(--text-muted);
+}
+.app-footer__copy {
+  font-size: 0.72rem; font-weight: 400; color: var(--text-light);
+  margin-top: 0.15rem;
+}
 
 /* ── Smooth transitions on theme switch ─────────────────────── */
 .sidebar, .header, .main, .card, .stat-card,

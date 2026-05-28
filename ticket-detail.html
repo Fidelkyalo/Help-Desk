@@ -151,20 +151,20 @@
     subscribeToReplies(ticketId, (newReply) => {
       appendReply(newReply);
 
-      // If it's an admin reply, trigger notification and show a toast
+      // If it's an admin reply, persist + show notification on the customer's side
       if (newReply.is_admin_reply) {
-        showToast('💬 Admin replied to your ticket.', 'info');
-        const userEmail = currentProfile?.email || currentUser?.email || 'member@example.com';
-        const userPhone = currentProfile?.phone || '+123456789';
-        const userName  = currentProfile?.full_name || 'Member';
+        const formattedNo = formatTicketNumber(ticket?.ticket_number, ticketId);
+        const subject = `New Response on Ticket ${formattedNo}`;
+        const adminText = newReply.message || '';
+        const notifMessage = `Admin replied to "${ticket?.subject || 'your ticket'}":\n\n${adminText}`;
 
-        notifyAdminReplied({
-          ticket: ticket,
-          replyMessage: newReply.message,
-          userEmail,
-          userPhone,
-          userName
-        }).catch(err => console.error('Realtime notification error:', err));
+        // Persist to customer's localStorage so it appears in Notifications page
+        persistNotification({ type: 'reply', subject, message: notifMessage });
+
+        // Show in-app pop-up with the actual reply text
+        showAppNotification('reply', subject, escapeHtml(adminText));
+
+        showToast('💬 Admin replied to your ticket.', 'info');
       }
     });
 

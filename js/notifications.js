@@ -246,20 +246,19 @@ async function notifyTicketSubmitted({ ticket, userEmail, userPhone, userName })
   ]);
 }
 
-// ── Notify on Admin Reply — includes the actual reply text ────
+// ── Notify on Admin Reply — sends edge functions only ─────────
+// NOTE: persistNotification + showAppNotification for replies are handled
+// on the customer's side via the realtime subscribeToReplies callback
+// in ticket-detail.html, so the actual reply text reaches the customer.
 async function notifyAdminReplied({ ticket, replyMessage, userEmail, userPhone, userName, adminEmail }) {
   const formattedNo = formatTicketNumber(ticket.ticket_number, ticket.id);
   const subject = `New Response on Ticket ${formattedNo}`;
-
-  // Show the actual reply content so the customer sees the full message
   const adminText = replyMessage || '';
   const message = adminText
     ? `Admin replied to "${ticket.subject}":\n\n${adminText}`
     : `Hi ${userName || 'Member'}, an admin has responded to your ticket "${ticket.subject}".`;
 
-  persistNotification({ type: 'reply', subject, message });
-  showAppNotification('reply', subject, adminText || message);
-
+  // Only call edge functions from admin side — notification is persisted on customer side
   await Promise.allSettled([
     callEdgeFunction('send-email', { to: userEmail, subject, message, replyTo: adminEmail || null }),
     callEdgeFunction('send-sms',   { to: userPhone, message }),

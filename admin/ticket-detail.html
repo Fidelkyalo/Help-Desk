@@ -256,6 +256,8 @@
     const isAdmin = r.is_admin_reply;
     const name = r.profiles?.full_name || (isAdmin ? 'Admin' : 'Member');
     const initial = name[0].toUpperCase();
+    // Escape HTML then convert newlines to <br> so multi-line replies render fully
+    const safeMessage = escapeHtml(r.message || '').replace(/\n/g, '<br>');
     return `
       <div class="reply ${isAdmin ? 'reply--admin' : ''}">
         <div class="reply__avatar ${isAdmin ? 'reply__avatar--admin' : 'reply__avatar--user'}">${initial}</div>
@@ -265,7 +267,7 @@
             ${isAdmin ? '<span class="reply__role">Admin</span>' : ''}
             <span class="reply__time">${formatDate(r.created_at)}</span>
           </div>
-          <div class="reply__message">${escapeHtml(r.message)}</div>
+          <div class="reply__message" style="white-space:pre-wrap;word-break:break-word;">${safeMessage}</div>
         </div>
       </div>`;
   }
@@ -332,6 +334,7 @@
       if (ticket.profiles) {
         notifyAdminReplied({
           ticket,
+          replyMessage: message,
           userEmail: ticket.profiles.email || 'user@example.com',
           userPhone: ticket.profiles.phone || '',
           userName:  ticket.profiles.full_name || 'Member',

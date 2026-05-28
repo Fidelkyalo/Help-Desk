@@ -151,7 +151,7 @@
     subscribeToReplies(ticketId, (newReply) => {
       appendReply(newReply);
 
-      // If it's an admin reply, trigger simulated notification and show a toast
+      // If it's an admin reply, trigger notification and show a toast
       if (newReply.is_admin_reply) {
         showToast('💬 Admin replied to your ticket.', 'info');
         const userEmail = currentProfile?.email || currentUser?.email || 'member@example.com';
@@ -160,6 +160,7 @@
 
         notifyAdminReplied({
           ticket: ticket,
+          replyMessage: newReply.message,
           userEmail,
           userPhone,
           userName
@@ -306,6 +307,8 @@
     const isAdmin = r.is_admin_reply;
     const name = r.profiles?.full_name || (isAdmin ? 'Admin' : 'User');
     const initial = name[0].toUpperCase();
+    // Escape HTML then convert newlines to <br> so multi-line replies render fully
+    const safeMessage = escapeHtml(r.message || '').replace(/\n/g, '<br>');
     return `
       <div class="reply ${isAdmin ? 'reply--admin' : ''}">
         <div class="reply__avatar ${isAdmin ? 'reply__avatar--admin' : 'reply__avatar--user'}">${initial}</div>
@@ -315,7 +318,7 @@
             ${isAdmin ? '<span class="reply__role">Admin</span>' : ''}
             <span class="reply__time">${formatDate(r.created_at)}</span>
           </div>
-          <div class="reply__message">${escapeHtml(r.message)}</div>
+          <div class="reply__message" style="white-space:pre-wrap;word-break:break-word;">${safeMessage}</div>
         </div>
       </div>`;
   }

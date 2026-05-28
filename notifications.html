@@ -18,25 +18,45 @@
       from { transform: translateY(16px); opacity: 0; }
       to   { transform: translateY(0);    opacity: 1; }
     }
+
     .notif-item {
       display: flex;
       gap: 0.875rem;
       align-items: flex-start;
       background: var(--surface);
       border: 1px solid var(--border);
+      border-left-width: 3px;
       border-radius: 12px;
       padding: 1rem 1.125rem;
       animation: slideUp 0.3s ease;
-      transition: border-color 0.2s, box-shadow 0.2s;
+      transition: border-color 0.2s, box-shadow 0.2s, opacity 0.2s;
+      position: relative;
     }
     .notif-item:hover {
       border-color: var(--border-hover);
       box-shadow: 0 4px 16px rgba(0,0,0,0.1);
     }
-    .notif-icon {
-      font-size: 1.35rem;
+
+    /* Unread items get a subtle glow + dot */
+    .notif-item.unread {
+      background: var(--primary-light);
+    }
+    .notif-item.unread .notif-subject {
+      color: var(--text);
+    }
+
+    .notif-unread-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #4f46e5;
       flex-shrink: 0;
-      margin-top: 0.1rem;
+      margin-top: 0.45rem;
+    }
+
+    .notif-icon {
+      font-size: 1.2rem;
+      flex-shrink: 0;
       width: 36px;
       height: 36px;
       border-radius: 10px;
@@ -54,8 +74,9 @@
     .notif-message {
       font-size: 0.8rem;
       color: var(--text-muted);
-      line-height: 1.55;
+      line-height: 1.6;
       word-break: break-word;
+      white-space: pre-wrap;
     }
     .notif-time {
       font-size: 0.7rem;
@@ -63,14 +84,41 @@
       margin-top: 0.4rem;
       font-weight: 500;
     }
+    .notif-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-shrink: 0;
+      margin-top: 0.1rem;
+    }
+    .notif-mark-read-btn {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 0.2rem 0.55rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .notif-mark-read-btn:hover {
+      background: var(--primary-light);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
     .notif-empty {
       text-align: center;
       padding: 4rem 2rem;
       color: var(--text-muted);
     }
-    .notif-empty__icon { font-size: 3rem; margin-bottom: 1rem; opacity: 0.5; }
+    .notif-empty__icon  { font-size: 3rem; margin-bottom: 1rem; opacity: 0.5; }
     .notif-empty__title { font-size: 1.1rem; font-weight: 700; color: var(--text); margin-bottom: 0.5rem; }
-    .notif-empty__sub { font-size: 0.875rem; }
+    .notif-empty__sub   { font-size: 0.875rem; }
+
     .notif-filter-bar {
       display: flex;
       gap: 0.5rem;
@@ -159,27 +207,31 @@
     <main class="content">
       <div style="max-width:720px">
 
-        <!-- Top bar: count + clear -->
+        <!-- Top bar -->
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem;">
           <div>
             <div class="page-title" style="font-size:1.4rem;">
               🔔 Notifications
-              <span id="notifBadge" style="
+              <span id="unreadBadge" style="
                 display:none;
                 background:linear-gradient(135deg,#4f46e5,#6366f1);
                 color:#fff;font-size:0.65rem;font-weight:700;
                 padding:0.2rem 0.6rem;border-radius:999px;
                 vertical-align:middle;margin-left:0.4rem;
-              ">0</span>
+              ">0 unread</span>
             </div>
-            <div class="page-subtitle">Admin replies and ticket resolutions, saved even after pop-ups dismiss.</div>
+            <div class="page-subtitle">Admin replies and ticket resolutions — saved even after pop-ups dismiss.</div>
           </div>
-          <button id="clearNotifsBtn" class="btn btn--secondary btn--sm">🗑 Clear All</button>
+          <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+            <button id="markAllReadBtn" class="btn btn--secondary btn--sm">✓ Mark All Read</button>
+            <button id="clearNotifsBtn" class="btn btn--secondary btn--sm">🗑 Clear All</button>
+          </div>
         </div>
 
         <!-- Filter pills -->
         <div class="notif-filter-bar">
           <button class="notif-filter-btn active" data-filter="all">All</button>
+          <button class="notif-filter-btn" data-filter="unread">🔵 Unread</button>
           <button class="notif-filter-btn" data-filter="reply">💬 Replies</button>
           <button class="notif-filter-btn" data-filter="resolved">✅ Resolved</button>
           <button class="notif-filter-btn" data-filter="status">ℹ️ Status</button>
@@ -244,55 +296,99 @@
     renderNotifications();
   }
 
+  function getItems() {
+    return JSON.parse(localStorage.getItem('notifs_' + currentUser.id) || '[]');
+  }
+
+  function saveItems(items) {
+    localStorage.setItem('notifs_' + currentUser.id, JSON.stringify(items));
+  }
+
   function renderNotifications() {
     if (!currentUser) return;
-    const key   = 'notifs_' + currentUser.id;
-    const all   = JSON.parse(localStorage.getItem(key) || '[]');
-    const items = activeFilter === 'all' ? all : all.filter(n => n.type === activeFilter);
+
+    const all = getItems();
+
+    // Filter
+    let items;
+    if (activeFilter === 'all')    items = all;
+    else if (activeFilter === 'unread') items = all.filter(n => !n.read);
+    else items = all.filter(n => n.type === activeFilter);
 
     const list  = document.getElementById('notifList');
     const empty = document.getElementById('notifEmpty');
-    const badge = document.getElementById('notifBadge');
+    const badge = document.getElementById('unreadBadge');
 
     // Clear rendered items (keep empty placeholder)
     Array.from(list.children).forEach(c => { if (c.id !== 'notifEmpty') c.remove(); });
 
+    // Update unread badge
+    const unreadCount = all.filter(n => !n.read).length;
+    if (unreadCount > 0) {
+      badge.style.display = 'inline-block';
+      badge.textContent   = `${unreadCount} unread`;
+    } else {
+      badge.style.display = 'none';
+    }
+
     if (!all.length) {
       empty.style.display = 'block';
-      badge.style.display = 'none';
+      empty.querySelector('.notif-empty__title').textContent = 'No notifications yet';
+      empty.querySelector('.notif-empty__sub').textContent   = 'Admin replies and ticket resolutions will appear here.';
       return;
     }
 
-    badge.style.display = 'inline-block';
-    badge.textContent   = all.length > 99 ? '99+' : all.length;
-
     if (!items.length) {
       empty.style.display = 'block';
-      empty.querySelector('.notif-empty__title').textContent = 'No notifications in this category';
-      empty.querySelector('.notif-empty__sub').textContent   = 'Try selecting a different filter above.';
+      empty.querySelector('.notif-empty__title').textContent = 'Nothing here';
+      empty.querySelector('.notif-empty__sub').textContent   = 'Try a different filter above.';
       return;
     }
 
     empty.style.display = 'none';
 
-    [...items].reverse().forEach(n => {
+    // Render newest first — track real index for mark-as-read
+    const reversed = [...items].reverse();
+    reversed.forEach((n, displayIndex) => {
+      // Real index in the stored array (newest = last)
+      const realIndex = all.indexOf(n);
+
       const icon  = iconMap[n.type]  || '🔔';
       const color = colorMap[n.type] || '#6366f1';
       const bg    = bgMap[n.type]    || 'rgba(99,102,241,0.1)';
+      const isUnread = !n.read;
 
       const el = document.createElement('div');
-      el.className = 'notif-item';
+      el.className = `notif-item${isUnread ? ' unread' : ''}`;
       el.style.borderLeftColor = color;
-      el.style.borderLeftWidth = '3px';
+
       el.innerHTML = `
+        ${isUnread ? '<div class="notif-unread-dot"></div>' : ''}
         <div class="notif-icon" style="background:${bg};color:${color};">${icon}</div>
         <div class="notif-body">
           <div class="notif-subject">${escapeHtml(n.subject || 'Notification')}</div>
-          <div class="notif-message">${escapeHtml(n.message)}</div>
+          <div class="notif-message">${escapeHtml(n.message).replace(/\n/g, '<br>')}</div>
           <div class="notif-time">${new Date(n.ts).toLocaleString()}</div>
         </div>
+        <div class="notif-actions">
+          ${isUnread ? `<button class="notif-mark-read-btn" data-index="${realIndex}" title="Mark as read">✓ Read</button>` : '<span style="font-size:0.7rem;color:var(--text-light);font-weight:500;">Read</span>'}
+        </div>
       `;
+
       list.appendChild(el);
+    });
+
+    // Wire up per-item mark-as-read buttons
+    list.querySelectorAll('.notif-mark-read-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.dataset.index, 10);
+        const items = getItems();
+        if (items[idx]) {
+          items[idx].read = true;
+          saveItems(items);
+          renderNotifications();
+        }
+      });
     });
   }
 
@@ -304,6 +400,15 @@
       activeFilter = btn.dataset.filter;
       renderNotifications();
     });
+  });
+
+  // Mark all read
+  document.getElementById('markAllReadBtn').addEventListener('click', () => {
+    if (!currentUser) return;
+    const items = getItems();
+    items.forEach(n => { n.read = true; });
+    saveItems(items);
+    renderNotifications();
   });
 
   // Clear all

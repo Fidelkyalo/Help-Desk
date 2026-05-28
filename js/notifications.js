@@ -4,30 +4,58 @@
 
 const EDGE_BASE = `${SUPABASE_URL}/functions/v1`;
 
-// ── Persist notification to localStorage log ─────────────────
-function persistNotification({ type, subject, message }) {
-  let userId = '';
+// ── Resolve current user ID from session ─────────────────────
+function _getSessionUserId() {
   for (let key in localStorage) {
     if (key.startsWith('sb-') && key.endsWith('-auth-token')) {
       try {
         const parsed = JSON.parse(localStorage.getItem(key));
-        userId = parsed?.user?.id || '';
+        const id = parsed?.user?.id || '';
+        if (id) return id;
       } catch (e) {}
-      break;
     }
   }
-  if (!userId) {
-    try {
-      const sess = JSON.parse(localStorage.getItem('db_active_session') || 'null');
-      userId = sess?.user?.id || '';
-    } catch (e) {}
-  }
+  try {
+    const sess = JSON.parse(localStorage.getItem('db_active_session') || 'null');
+    return sess?.user?.id || '';
+  } catch (e) { return ''; }
+}
+
+// ── Persist notification to localStorage log ─────────────────
+function persistNotification({ type, subject, message }) {
+  const userId = _getSessionUserId();
   if (!userId) return;
 
   const key   = 'notifs_' + userId;
   const items = JSON.parse(localStorage.getItem(key) || '[]');
-  items.push({ type, subject, message, ts: new Date().toISOString() });
+  items.push({ type, subject, message, ts: new Date().toISOString(), read: false });
   if (items.length > 100) items.splice(0, items.length - 100);
+  localStorage.setItem(key, JSON.stringify(items));
+}
+
+// ── Count unread notifications ────────────────────────────────
+function getUnreadCount(userId) {
+  const items = JSON.parse(localStorage.getItem('notifs_' + userId) || '[]');
+  return items.filter(n => !n.read).length;
+}
+
+// ── Mark a single notification as read (by index) ────────────
+function markNotificationRead(userId, index) {
+  const key   = 'notifs_' + userId;
+  const items = JSON.parse(localStorage.getItem(key) || '[]');
+  // Items are displayed newest-first, so reverse the index
+  const realIndex = items.length - 1 - index;
+  if (items[realIndex]) {
+    items[realIndex].read = true;
+    localStorage.setItem(key, JSON.stringify(items));
+  }
+}
+
+// ── Mark all notifications as read ───────────────────────────
+function markAllNotificationsRead(userId) {
+  const key   = 'notifs_' + userId;
+  const items = JSON.parse(localStorage.getItem(key) || '[]');
+  items.forEach(n => { n.read = true; });
   localStorage.setItem(key, JSON.stringify(items));
 }
 
@@ -66,7 +94,6 @@ function showAppNotification(type, subject, messageText) {
   const icon  = iconMap[type]  || '🔔';
   const color = colorMap[type] || '#6366f1';
 
-  // Container — stacks multiple toasts
   let center = document.getElementById('app-notif-center');
   if (!center) {
     center = document.createElement('div');
@@ -111,12 +138,11 @@ function showAppNotification(type, subject, messageText) {
                   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
         ${subject || 'Notification'}
       </div>
-      <div style="font-size:0.78rem;color:var(--text-muted,#94a3b8);line-height:1.45;
-                  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">
+      <div style="font-size:0.78rem;color:var(--text-muted,#94a3b8);line-height:1.45;">
         ${messageText}
       </div>
     </div>
-    <button onclick="this.closest('[id]').remove()" style="
+    <button onclick="this.closest('div[style]').style.opacity='0';setTimeout(()=>this.closest('div[style]').remove(),350)" style="
       background:none;border:none;color:var(--text-light,#64748b);
       cursor:pointer;font-size:0.85rem;padding:0;flex-shrink:0;
       margin-top:-0.1rem;line-height:1;transition:color 0.15s;
@@ -125,7 +151,6 @@ function showAppNotification(type, subject, messageText) {
 
   center.appendChild(card);
 
-  // Slide in
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       card.style.transform = 'translateX(0)';
@@ -172,14 +197,19 @@ async function notifyTicketSubmitted({ ticket, userEmail, userPhone, userName })
   ]);
 }
 
-// ── Notify on Admin Reply ─────────────────────────────────────
-async function notifyAdminReplied({ ticket, userEmail, userPhone, userName, adminEmail }) {
+// ── Notify on Admin Reply — includes the actual reply text ────
+async function notifyAdminReplied({ ticket, replyMessage, userEmail, userPhone, userName, adminEmail }) {
   const formattedNo = formatTicketNumber(ticket.ticket_number, ticket.id);
   const subject = `New Response on Ticket ${formattedNo}`;
-  const message = `Hi ${userName || 'Member'}, an admin has responded to your ticket "${ticket.subject}".`;
+
+  // Show the actual reply content so the customer sees the full message
+  const adminText = replyMessage || '';
+  const message = adminText
+    ? `Admin replied to "${ticket.subject}":\n\n${adminText}`
+    : `Hi ${userName || 'Member'}, an admin has responded to your ticket "${ticket.subject}".`;
 
   persistNotification({ type: 'reply', subject, message });
-  showAppNotification('reply', subject, message);
+  showAppNotification('reply', subject, adminText || message);
 
   await Promise.allSettled([
     callEdgeFunction('send-email', { to: userEmail, subject, message, replyTo: adminEmail || null }),

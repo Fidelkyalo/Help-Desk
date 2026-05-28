@@ -204,6 +204,39 @@
           </form>
         </div>
 
+        <!-- 🔔 Notifications Log -->
+        <div class="card" id="notifications" style="margin-top:1.5rem;scroll-margin-top:1.5rem;">
+          <div class="card__header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.75rem;">
+            <span class="card__title" style="display:flex;align-items:center;gap:0.5rem;">
+              🔔 Notifications
+              <span id="notifBadge" style="
+                display:none;
+                background:linear-gradient(135deg,#4f46e5,#6366f1);
+                color:#fff;font-size:0.65rem;font-weight:700;
+                padding:0.15rem 0.5rem;border-radius:999px;
+                min-width:18px;text-align:center;line-height:1.6;
+              ">0</span>
+            </span>
+            <button id="clearNotifsBtn" style="
+              background:none;border:1px solid var(--border);color:var(--text-muted);
+              font-size:0.75rem;font-weight:600;padding:0.35rem 0.75rem;
+              border-radius:6px;cursor:pointer;font-family:inherit;transition:all 0.2s;
+            ">Clear All</button>
+          </div>
+          <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:1.25rem;line-height:1.5;">
+            Admin replies and ticket resolutions appear here, even after the pop-up banners have dismissed.
+          </p>
+          <div id="notifList" style="display:flex;flex-direction:column;gap:0.75rem;">
+            <div id="notifEmpty" style="
+              text-align:center;padding:2rem 1rem;
+              color:var(--text-muted);font-size:0.875rem;
+            ">
+              <div style="font-size:2rem;margin-bottom:0.5rem;">🔕</div>
+              No notifications yet. You'll see admin replies and resolutions here.
+            </div>
+          </div>
+        </div>
+
         <!-- ⚠️ Danger Zone -->
         <div class="card" style="margin-top:1.5rem;border-color:rgba(220,38,38,0.35);background:var(--danger-light);">
           <div class="card__header">
@@ -406,6 +439,85 @@
 
   document.getElementById('logoutBtn').addEventListener('click', logout);
   init();
+
+  // ── Notifications Panel ───────────────────────────────────────────────────
+  function renderNotificationsPanel() {
+    const userId = currentUser?.id;
+    if (!userId) return;
+
+    const key = 'notifs_' + userId;
+    const items = JSON.parse(localStorage.getItem(key) || '[]');
+    const list  = document.getElementById('notifList');
+    const empty = document.getElementById('notifEmpty');
+    const badge = document.getElementById('notifBadge');
+
+    if (!items.length) {
+      empty.style.display = 'block';
+      badge.style.display = 'none';
+      // Remove any previously rendered items (keep empty msg)
+      Array.from(list.children).forEach(c => { if (c.id !== 'notifEmpty') c.remove(); });
+      return;
+    }
+
+    empty.style.display = 'none';
+    badge.style.display = 'inline-block';
+    badge.textContent   = items.length > 99 ? '99+' : items.length;
+
+    // Re-render all items newest-first
+    Array.from(list.children).forEach(c => { if (c.id !== 'notifEmpty') c.remove(); });
+
+    [...items].reverse().forEach(n => {
+      const iconMap = { resolved: '✅', reply: '💬', status: 'ℹ️', submitted: '🎫' };
+      const colorMap = {
+        resolved : '#10b981',
+        reply    : '#4f46e5',
+        status   : '#f59e0b',
+        submitted: '#3b82f6'
+      };
+      const icon  = iconMap[n.type]  || '🔔';
+      const color = colorMap[n.type] || '#6366f1';
+
+      const el = document.createElement('div');
+      el.style.cssText = `
+        display:flex;gap:0.875rem;align-items:flex-start;
+        background:var(--surface);border:1px solid var(--border);
+        border-left:3px solid ${color};
+        border-radius:10px;padding:0.875rem 1rem;
+        animation:slideUp 0.3s ease;
+      `;
+      el.innerHTML = `
+        <div style="font-size:1.25rem;flex-shrink:0;margin-top:0.1rem;">${icon}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:0.85rem;font-weight:700;color:var(--text);margin-bottom:0.2rem;">
+            ${escapeHtml(n.subject || 'Notification')}
+          </div>
+          <div style="font-size:0.8rem;color:var(--text-muted);line-height:1.5;word-break:break-word;">
+            ${escapeHtml(n.message)}
+          </div>
+          <div style="font-size:0.7rem;color:var(--text-light);margin-top:0.4rem;font-weight:500;">
+            ${new Date(n.ts).toLocaleString()}
+          </div>
+        </div>
+      `;
+      list.appendChild(el);
+    });
+  }
+
+  document.getElementById('clearNotifsBtn').addEventListener('click', () => {
+    if (!currentUser) return;
+    localStorage.removeItem('notifs_' + currentUser.id);
+    renderNotificationsPanel();
+  });
+
+  // Render after init loads the user
+  const _origInit = init;
+  // Re-render once currentUser is set (init is async, so poll briefly)
+  const _notifPollInterval = setInterval(() => {
+    if (currentUser) {
+      clearInterval(_notifPollInterval);
+      renderNotificationsPanel();
+    }
+  }, 200);
 
   // ── Delete Account ────────────────────────────────────────────────────────
   const _delModal = document.getElementById('deleteAccountModal');

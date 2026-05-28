@@ -4,6 +4,36 @@
 
 const EDGE_BASE = `${SUPABASE_URL}/functions/v1`;
 
+// ── Persist notification to localStorage log ─────────────────
+function persistNotification({ type, subject, message }) {
+  // Resolve the current user id from the active session token
+  let userId = '';
+  for (let key in localStorage) {
+    if (key.startsWith('sb-') && key.endsWith('-auth-token')) {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(key));
+        userId = parsed?.user?.id || '';
+      } catch (e) {}
+      break;
+    }
+  }
+  // Also check demo mode session
+  if (!userId) {
+    try {
+      const sess = JSON.parse(localStorage.getItem('db_active_session') || 'null');
+      userId = sess?.user?.id || '';
+    } catch (e) {}
+  }
+  if (!userId) return;
+
+  const key   = 'notifs_' + userId;
+  const items = JSON.parse(localStorage.getItem(key) || '[]');
+  items.push({ type, subject, message, ts: new Date().toISOString() });
+  // Keep last 100 notifications
+  if (items.length > 100) items.splice(0, items.length - 100);
+  localStorage.setItem(key, JSON.stringify(items));
+}
+
 // ── Real Edge Function Call ───────────────────────────────────
 async function callEdgeFunction(fnName, payload) {
   // If running in local demo mode, bypass actual fetch to avoid network errors
@@ -216,6 +246,8 @@ async function notifyTicketSubmitted({ ticket, userEmail, userPhone, userName })
   const subject = `Ticket ${formattedNo} Received`;
   const message = `Hi ${userName}, your support request "${ticket.subject}" has been received. We'll get back to you shortly. Ticket ID: ${formattedNo}`;
 
+  persistNotification({ type: 'submitted', subject, message });
+
   // Trigger visual dashboard simulators
   showSimulatedNotification('email', userEmail, subject, message);
   setTimeout(() => showSimulatedNotification('sms', userPhone, null, message), 600);
@@ -233,6 +265,8 @@ async function notifyAdminReplied({ ticket, userEmail, userPhone, userName, admi
   const formattedNo = formatTicketNumber(ticket.ticket_number, ticket.id);
   const subject = `New Response on Ticket ${formattedNo}`;
   const message = `Hi ${userName || 'Member'}, an admin has responded to your ticket "${ticket.subject}". Log in to view the response: https://help-desk-taupe.vercel.app/ticket-detail?id=${ticket.id}`;
+
+  persistNotification({ type: 'reply', subject, message });
 
   // Show on customer's screen
   showSimulatedNotification('email', userEmail, subject, message);
@@ -254,6 +288,8 @@ async function notifyTicketStatusChanged({ ticket, userEmail, userPhone, userNam
   const subject = `Ticket ${formattedNo} Status Updated`;
   const message = `Hi ${userName || 'Member'}, your ticket "${ticket.subject}" status has been updated to: ${ticket.status}. Log in to view details: https://help-desk-taupe.vercel.app/ticket-detail?id=${ticket.id}`;
 
+  persistNotification({ type: 'status', subject, message });
+
   showSimulatedNotification('email', userEmail, subject, message);
   if (userPhone) {
     setTimeout(() => showSimulatedNotification('sms', userPhone, null, message), 600);
@@ -272,6 +308,8 @@ async function notifyTicketResolved({ ticket, userEmail, userPhone, userName }) 
   const formattedNo = formatTicketNumber(ticket.ticket_number, ticket.id);
   const subject = `Ticket ${formattedNo} Resolved ✅`;
   const message = `Hi ${userName || 'Member'}, your support ticket "${ticket.subject}" has been resolved. If you need further help, please submit a new request at https://help-desk-taupe.vercel.app`;
+
+  persistNotification({ type: 'resolved', subject, message });
 
   // Trigger visual dashboard simulators
   showSimulatedNotification('email', userEmail, subject, message);

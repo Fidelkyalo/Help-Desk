@@ -67,6 +67,16 @@
         </div>
       </div>
       <a href="ticket-new.html" class="btn btn--primary btn--sm">+ Report Issue</a>
+        <a href="settings.html#notifications" id="notifBellBtn" title="View Notifications" style="
+          position:relative;display:inline-flex;align-items:center;justify-content:center;
+          width:36px;height:36px;border-radius:8px;
+          background:var(--primary-light);border:1px solid var(--border);
+          font-size:1.1rem;text-decoration:none;transition:all 0.2s;
+        ">🔔<span id="dashNotifDot" style="
+          display:none;position:absolute;top:5px;right:5px;
+          width:8px;height:8px;border-radius:50%;
+          background:#ef4444;border:2px solid var(--bg);
+        "></span></a>
         <button class="theme-toggle" aria-label="Toggle theme">☀️</button>
       </header>
 
@@ -301,7 +311,15 @@
   // Logout
   document.getElementById('logoutBtn').addEventListener('click', logout);
 
-  init();
+  // Notification bell dot — show if user has stored notifications
+  function updateNotifBell() {
+    if (!currentUser) return;
+    const items = JSON.parse(localStorage.getItem('notifs_' + currentUser.id) || '[]');
+    const dot = document.getElementById('dashNotifDot');
+    if (dot) dot.style.display = items.length ? 'block' : 'none';
+  }
+
+  init().then(() => updateNotifBell());
 </script>
 </body>
 </html>

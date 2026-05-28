@@ -129,6 +129,7 @@ button.sidebar__link {
   cursor: pointer;
   font-family: inherit;
   text-align: left;
+  justify-content: flex-start;
 }
 
 .sidebar__footer {

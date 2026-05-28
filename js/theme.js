@@ -12,10 +12,18 @@
     document.documentElement.setAttribute('data-theme', theme);
     // Update every toggle button icon on the page
     document.querySelectorAll('.theme-toggle').forEach(btn => {
-      btn.textContent = theme === DARK ? '☀️' : '🌙';
+      // Only set textContent on simple icon-only buttons (no child elements)
+      if (!btn.querySelector('span')) {
+        btn.textContent = theme === DARK ? '☀️' : '🌙';
+      }
       btn.setAttribute('aria-label', theme === DARK ? 'Switch to light mode' : 'Switch to dark mode');
       btn.title = theme === DARK ? 'Switch to light mode' : 'Switch to dark mode';
     });
+    // Update sidebar theme label & icon if present
+    const themeIcon  = document.getElementById('themeIcon');
+    const themeLabel = document.getElementById('themeLabel');
+    if (themeIcon)  themeIcon.textContent  = theme === DARK ? '☀️' : '🌙';
+    if (themeLabel) themeLabel.textContent = theme === DARK ? 'Light Mode' : 'Dark Mode';
   }
 
   // ── Get saved or system preference ───────────────────────

@@ -87,6 +87,66 @@ async function callEdgeFunction(fnName, payload) {
 }
 
 // ── In-App Pop-up Notification ────────────────────────────────
+
+// Pre-unlock audio context on first user interaction (required on iOS/Android)
+let _audioCtx = null;
+function _getAudioCtx() {
+  if (!_audioCtx) {
+    try {
+      _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    } catch (_) {}
+  }
+  return _audioCtx;
+}
+// Unlock on first touch or click so mobile browsers allow audio playback
+['touchstart', 'touchend', 'mousedown', 'keydown'].forEach(evt => {
+  document.addEventListener(evt, function unlock() {
+    const ctx = _getAudioCtx();
+    if (ctx && ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
+    document.removeEventListener(evt, unlock);
+  }, { once: true, passive: true });
+});
+
+function _playChime(type) {
+  try {
+    const ctx = _getAudioCtx();
+    if (!ctx) return;
+    // Resume if suspended (mobile browsers suspend until user gesture)
+    const play = () => {
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+
+      if (type === 'resolved') {
+        // Two-tone ascending chime for resolved
+        osc.frequency.setValueAtTime(523.25, ctx.currentTime);
+        osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.15);
+        gain.gain.setValueAtTime(0.06, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.5);
+      } else {
+        // Single soft ding for other types
+        osc.frequency.setValueAtTime(523.25, ctx.currentTime);
+        gain.gain.setValueAtTime(0.06, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.35);
+      }
+    };
+
+    if (ctx.state === 'suspended') {
+      ctx.resume().then(play).catch(() => {});
+    } else {
+      play();
+    }
+  } catch (_) {}
+}
+
 function showAppNotification(type, subject, messageText) {
   const iconMap  = { submitted: '🎫', reply: '💬', status: 'ℹ️', resolved: '✅' };
   const colorMap = { submitted: '#3b82f6', reply: '#4f46e5', status: '#f59e0b', resolved: '#10b981' };
@@ -94,21 +154,22 @@ function showAppNotification(type, subject, messageText) {
   const icon  = iconMap[type]  || '🔔';
   const color = colorMap[type] || '#6366f1';
 
+  // Container — top-right, stacks downward
   let center = document.getElementById('app-notif-center');
   if (!center) {
     center = document.createElement('div');
     center.id = 'app-notif-center';
     center.style.cssText = `
       position: fixed;
-      bottom: 1.5rem;
-      right: 1.5rem;
+      top: 1.25rem;
+      right: 1.25rem;
       z-index: 10000;
       display: flex;
-      flex-direction: column-reverse;
+      flex-direction: column;
       gap: 0.625rem;
       pointer-events: none;
-      width: 100%;
-      max-width: 340px;
+      width: calc(100vw - 2.5rem);
+      max-width: 360px;
     `;
     document.body.appendChild(center);
   }
@@ -158,20 +219,8 @@ function showAppNotification(type, subject, messageText) {
     });
   });
 
-  // Soft chime
-  try {
-    const ctx  = new (window.AudioContext || window.webkitAudioContext)();
-    const osc  = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(type === 'resolved' ? 659.25 : 523.25, ctx.currentTime);
-    gain.gain.setValueAtTime(0.04, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.4);
-  } catch (_) {}
+  // Play chime (works on mobile after first user interaction)
+  _playChime(type);
 
   // Auto-dismiss after 5 s
   setTimeout(() => {

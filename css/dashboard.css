@@ -121,6 +121,15 @@
 .sidebar__link-icon { font-size: 1.15rem; width: 22px; text-align: center; opacity: 0.8; }
 .sidebar__link.active .sidebar__link-icon { opacity: 1; }
 
+/* Make button-based sidebar links look identical to anchor links */
+button.sidebar__link {
+  width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
 .sidebar__footer {
   padding: 1.25rem 1.5rem;
   border-top: 1px solid var(--border);

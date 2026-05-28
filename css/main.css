@@ -291,18 +291,24 @@ p  { color: var(--text-muted); }
   justify-content: center; gap: 0.2rem;
   margin-top: auto; text-align: center;
 }
+.app-footer__brand {
+  display: flex; align-items: center; justify-content: center;
+  gap: 0.45rem; font-size: 1rem; font-weight: 700; color: var(--text);
+  margin-bottom: 0.25rem;
+}
+.app-footer__brand img { display: block; }
 .app-footer__line1 {
-  font-size: 0.85rem; font-weight: 700; color: var(--text);
+  font-size: 0.82rem; font-weight: 600; color: var(--text-muted);
 }
 .app-footer__line2 {
-  font-size: 0.8rem; font-weight: 600; color: var(--text-muted);
-}
-.app-footer__line3 {
   font-size: 0.78rem; font-weight: 500; color: var(--text-muted);
 }
+.app-footer__line3 {
+  font-size: 0.75rem; font-weight: 400; color: var(--text-muted);
+}
 .app-footer__copy {
-  font-size: 0.72rem; font-weight: 400; color: var(--text-light);
-  margin-top: 0.15rem;
+  font-size: 0.7rem; font-weight: 400; color: var(--text-light);
+  margin-top: 0.2rem;
 }
 
 /* ── Smooth transitions on theme switch ─────────────────────── */

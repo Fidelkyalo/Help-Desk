@@ -152,18 +152,26 @@
   align-items: center;
   gap: 0.2rem;
 }
+.auth-page-footer .footer-brand {
+  display: flex; align-items: center; justify-content: center;
+  gap: 0.45rem; font-size: 1rem; font-weight: 700; color: var(--text);
+  margin-bottom: 0.25rem;
+}
+.auth-page-footer .footer-brand img {
+  width: 20px; height: 20px; object-fit: contain; border-radius: 4px; display: block;
+}
 .auth-page-footer .footer-line1 {
-  font-size: 0.85rem; font-weight: 700; color: var(--text);
+  font-size: 0.82rem; font-weight: 600; color: var(--text-muted);
 }
 .auth-page-footer .footer-line2 {
-  font-size: 0.8rem; font-weight: 600; color: var(--text-muted);
+  font-size: 0.78rem; font-weight: 500; color: var(--text-muted);
 }
 .auth-page-footer .footer-line3 {
-  font-size: 0.78rem; font-weight: 500; color: var(--text-muted);
+  font-size: 0.75rem; font-weight: 400; color: var(--text-muted);
 }
 .auth-page-footer .footer-copy {
   font-size: 0.7rem; font-weight: 400; color: var(--text-light);
-  margin-top: 0.15rem;
+  margin-top: 0.2rem;
 }
 
 /* ── Auth responsive ────────────────────────────────────────── */

@@ -224,7 +224,6 @@
           <div class="ticket-detail__title">${escapeHtml(t.subject)}</div>
           <div class="ticket-detail__meta">
             ${statusBadge(t.status)}
-            ${priorityBadge(t.priority)}
             <span class="ticket-detail__meta-item">📁 ${escapeHtml(t.category)}</span>
             <span class="ticket-detail__meta-item">🕐 ${formatDate(t.created_at)}</span>
           </div>

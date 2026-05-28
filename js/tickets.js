@@ -3,10 +3,10 @@
 // ============================================================
 
 // ── Submit a New Ticket ───────────────────────────────────────
-async function submitTicket({ userId, subject, category, priority, description }) {
+async function submitTicket({ userId, subject, category, description }) {
   const { data, error } = await supabaseClient
     .from('tickets')
-    .insert([{ user_id: userId, subject, category, priority, description, status: 'Pending' }])
+    .insert([{ user_id: userId, subject, category, description, status: 'Pending' }])
     .select()
     .single();
   if (error) throw error;

@@ -216,8 +216,6 @@ html, body { overflow-x: hidden; }
   .ticket-cards      { display: none; }
   .ticket-table th:nth-child(3),
   .ticket-table td:nth-child(3) { display: none; } /* category */
-  .ticket-table th:nth-child(4),
-  .ticket-table td:nth-child(4) { display: none; } /* priority */
 
   .filters__search { min-width: 180px; }
 
@@ -331,7 +329,7 @@ html, body { overflow-x: hidden; }
 }
 
 @media (max-width: 760px) {
-  /* Also hide priority */
+  /* Also hide date on very small tablets */
   .ticket-table th:nth-child(4),
   .ticket-table td:nth-child(4) { display: none; }
 }

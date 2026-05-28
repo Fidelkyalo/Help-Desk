@@ -381,7 +381,6 @@ function seedDatabase() {
       user_id: 'usr-alex',
       subject: 'WiFi Connection drops frequently in Office B',
       category: 'Technical',
-      priority: 'High',
       status: 'Pending',
       description: 'Since yesterday, the enterprise WiFi in meeting room B drops connection every 5-10 minutes. It makes taking Zoom meetings from there impossible. I have tried resetting my adapter but others are reporting the same.',
       created_at: new Date(Date.now() - 25000000).toISOString()
@@ -392,7 +391,6 @@ function seedDatabase() {
       user_id: 'usr-sarah',
       subject: 'Billing error on April Invoice',
       category: 'Billing',
-      priority: 'Medium',
       status: 'Resolved',
       description: 'Hi, I noticed that my credit card was charged twice on the April invoice. Can you please check and issue a refund for the duplicate transaction?',
       created_at: new Date(Date.now() - 86400000).toISOString()
@@ -403,7 +401,6 @@ function seedDatabase() {
       user_id: 'usr-alex',
       subject: 'Access request for CRM production tool',
       category: 'General',
-      priority: 'Low',
       status: 'Pending',
       description: 'I need access to the HubSpot CRM production portal as I have recently transferred to the Customer Success department. My manager has already signed off on the security training.',
       created_at: new Date(Date.now() - 5000000).toISOString()

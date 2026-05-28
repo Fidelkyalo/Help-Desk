@@ -46,7 +46,6 @@ create table public.tickets (
   user_id       uuid references public.profiles(id) on delete cascade not null,
   subject       text not null,
   category      text not null,
-  priority      text not null,
   status        text not null default 'Pending'
                   check (status in ('Pending', 'Resolved', 'Customer Marked as Resolved')),
   description   text not null,

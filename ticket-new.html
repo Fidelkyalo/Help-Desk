@@ -102,17 +102,6 @@
             </div>
 
             <div class="form-group">
-              <label class="form-label" for="priority">Priority *</label>
-              <select class="form-select" id="priority" required>
-                <option value="">Select priority</option>
-                <option value="Low">Low</option>
-                <option value="Medium">Medium</option>
-                <option value="High">High</option>
-              </select>
-              <span class="form-error" id="priorityError"></span>
-            </div>
-
-            <div class="form-group">
               <label class="form-label" for="description">Description *</label>
               <textarea class="form-textarea" id="description" placeholder="Describe your issue in detail…" required></textarea>
               <span class="form-error" id="descriptionError"></span>
@@ -177,18 +166,16 @@
     e.preventDefault();
     const subject     = document.getElementById('subject').value.trim();
     const category    = document.getElementById('category').value;
-    const priority    = document.getElementById('priority').value;
     const description = document.getElementById('description').value.trim();
     const alertEl     = document.getElementById('formAlert');
     const btn         = document.getElementById('submitBtn');
 
-    ['subjectError','categoryError','priorityError','descriptionError'].forEach(clearError);
+    ['subjectError','categoryError','descriptionError'].forEach(clearError);
     alertEl.style.display = 'none';
 
     let valid = true;
     if (!subject)     { showError('subjectError', 'Subject is required'); valid = false; }
     if (!category)    { showError('categoryError', 'Please select a category'); valid = false; }
-    if (!priority)    { showError('priorityError', 'Please select a priority'); valid = false; }
     if (!description) { showError('descriptionError', 'Description is required'); valid = false; }
     if (!valid) return;
 
@@ -198,7 +185,7 @@
     try {
       const ticket = await submitTicket({
         userId: currentUser.id,
-        subject, category, priority, description
+        subject, category, description
       });
 
       // Send notifications

@@ -115,12 +115,6 @@
           <option value="Pending">Pending</option>
           <option value="Resolved">Resolved</option>
         </select>
-        <select class="filters__select" id="filterPriority">
-          <option value="">All Priorities</option>
-          <option value="Low">Low</option>
-          <option value="Medium">Medium</option>
-          <option value="High">High</option>
-        </select>
         <select class="filters__select" id="filterCategory">
           <option value="">All Categories</option>
           <option value="Technical">Technical</option>
@@ -140,14 +134,13 @@
               <th>Member Name</th>
               <th>Subject</th>
               <th>Category</th>
-              <th>Priority</th>
               <th>Status</th>
               <th>Date</th>
               <th style="text-align: right; padding-right: 1.5rem;">Action</th>
             </tr>
           </thead>
           <tbody id="ticketTableBody">
-            <tr><td colspan="8"><div class="page-loader"><div class="spinner"></div></div></td></tr>
+            <tr><td colspan="7"><div class="page-loader"><div class="spinner"></div></div></td></tr>
           </tbody>
         </table>
       </div>
@@ -207,7 +200,6 @@
 
     // Attach filter listeners
     document.getElementById('filterStatus').addEventListener('change', loadTickets);
-    document.getElementById('filterPriority').addEventListener('change', loadTickets);
     document.getElementById('filterCategory').addEventListener('change', loadTickets);
     document.getElementById('searchBar').addEventListener('input', debounce(loadTickets, 300));
 
@@ -235,11 +227,10 @@
   async function loadTickets() {
     try {
       const status   = document.getElementById('filterStatus').value || null;
-      const priority = document.getElementById('filterPriority').value || null;
       const category = document.getElementById('filterCategory').value || null;
       const query    = document.getElementById('searchBar').value.toLowerCase().trim();
 
-      let tickets = await fetchAllTickets({ status, priority, category });
+      let tickets = await fetchAllTickets({ status, category });
 
       // Apply search term filters if active
       if (query) {
@@ -265,7 +256,7 @@
   function renderTable(tickets) {
     const tbody = document.getElementById('ticketTableBody');
     if (!tickets.length) {
-      tbody.innerHTML = `<tr><td colspan="8">
+      tbody.innerHTML = `<tr><td colspan="7">
         <div class="empty-state">
           <div class="empty-state__icon">🎫</div>
           <div class="empty-state__title">No tickets match criteria</div>
@@ -282,7 +273,6 @@
           <div class="ticket-table__meta">${escapeHtml(t.category)}</div>
         </td>
         <td>${escapeHtml(t.category)}</td>
-        <td>${priorityBadge(t.priority)}</td>
         <td>${statusBadge(t.status)}</td>
         <td class="text-sm text-muted">${formatDate(t.created_at)}</td>
         <td style="text-align: right; padding-right: 1.5rem;">
@@ -310,7 +300,6 @@
         </div>
         <div class="ticket-card__meta">${formatTicketNumber(t.ticket_number, t.id)} · ${escapeHtml(t.profiles?.full_name || 'Member')} · ${escapeHtml(t.category)}</div>
         <div class="ticket-card__footer">
-          ${priorityBadge(t.priority)}
           <span class="text-xs text-muted">${formatDate(t.created_at)}</span>
         </div>
       </a>`).join('');

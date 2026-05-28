@@ -22,17 +22,6 @@ function statusBadge(status) {
   return `<span class="${cls}">${status}</span>`;
 }
 
-// ── Priority badge HTML ───────────────────────────────────────
-function priorityBadge(priority) {
-  const map = {
-    'Low':    'badge badge--low',
-    'Medium': 'badge badge--medium',
-    'High':   'badge badge--high'
-  };
-  const cls = map[priority] || 'badge';
-  return `<span class="${cls}">${priority}</span>`;
-}
-
 // ── Show toast notification ───────────────────────────────────
 function showToast(message, type = 'success') {
   const existing = document.getElementById('toast');

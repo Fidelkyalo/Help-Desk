@@ -3,14 +3,13 @@
 // ============================================================
 
 // ── Fetch All Tickets (with user profile info) ────────────────
-async function fetchAllTickets({ status = null, priority = null, category = null } = {}) {
+async function fetchAllTickets({ status = null, category = null } = {}) {
   let query = supabaseClient
     .from('tickets')
     .select('*, profiles(full_name, phone)')
     .order('created_at', { ascending: false });
 
   if (status) query = query.eq('status', status);
-  if (priority) query = query.eq('priority', priority);
   if (category) query = query.eq('category', category);
 
   const { data, error } = await query;

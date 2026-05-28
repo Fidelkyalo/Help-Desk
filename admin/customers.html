@@ -364,7 +364,6 @@
                     <th>Ticket No.</th>
                     <th>Subject</th>
                     <th>Category</th>
-                    <th>Priority</th>
                     <th>Status</th>
                     <th>Date</th>
                     <th style="text-align: right; padding-right: 1.5rem;">Action</th>
@@ -686,7 +685,6 @@
           <div class="ticket-table__meta">${escapeHtml(t.category)}</div>
         </td>
         <td>${escapeHtml(t.category)}</td>
-        <td>${priorityBadge(t.priority)}</td>
         <td>${statusBadge(t.status)}</td>
         <td class="text-sm text-muted">${formatDate(t.created_at)}</td>
         <td style="text-align:right;padding-right:1.5rem;">

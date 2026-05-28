@@ -30,7 +30,6 @@ create table if not exists public.tickets (
   user_id uuid references public.profiles(id) on delete cascade not null,
   subject text not null,
   category text not null,
-  priority text not null,
   status text not null default 'Pending' check (status in ('Pending', 'Resolved')),
   description text not null,
   created_at timestamp with time zone not null default timezone('utc'::text, now()),
@@ -352,7 +351,6 @@ async function startMigration() {
         user_id: liveUserId,
         subject: ticket.subject,
         category: ticket.category,
-        priority: ticket.priority,
         status: ticket.status || 'Pending',
         description: ticket.description,
         created_at: ticket.created_at

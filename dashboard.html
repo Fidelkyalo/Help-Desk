@@ -129,7 +129,6 @@
               <th>Ticket No.</th>
               <th>Subject</th>
               <th>Category</th>
-              <th>Priority</th>
               <th>Status</th>
               <th>Date</th>
             </tr>
@@ -258,7 +257,7 @@
   function renderTable(tickets) {
     const tbody = document.getElementById('ticketTableBody');
     if (!tickets.length) {
-      tbody.innerHTML = `<tr><td colspan="6">
+      tbody.innerHTML = `<tr><td colspan="5">
         <div class="empty-state">
           <div class="empty-state__icon">🎫</div>
           <div class="empty-state__title">No tickets yet</div>
@@ -276,7 +275,6 @@
           <div class="ticket-table__meta">${escapeHtml(t.category)}</div>
         </td>
         <td>${escapeHtml(t.category)}</td>
-        <td>${priorityBadge(t.priority)}</td>
         <td>${statusBadge(t.status)}</td>
         <td class="text-sm text-muted">${formatDate(t.created_at)}</td>
       </tr>`).join('');
@@ -300,7 +298,6 @@
         </div>
         <div class="ticket-card__meta">${formatTicketNumber(t.ticket_number, t.id)} · ${escapeHtml(t.category)}</div>
         <div class="ticket-card__footer">
-          ${priorityBadge(t.priority)}
           <span class="text-xs text-muted">${formatDate(t.created_at)}</span>
         </div>
       </a>`).join('');

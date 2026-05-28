@@ -150,8 +150,29 @@
   margin-top: 0.5rem;
   font-weight: 500;
   padding: 0 1rem;
-  line-height: 1.6;
+  line-height: 1.8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
 }
+.auth-page-footer .footer-brand {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.auth-page-footer .footer-brand img {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  border-radius: 4px;
+}
+.auth-page-footer .footer-org { font-weight: 500; color: var(--text-muted); }
+.auth-page-footer .footer-name { font-weight: 600; color: var(--text-muted); }
+.auth-page-footer .footer-copy { font-size: 0.7rem; color: var(--text-light); }
 
 /* ── Auth responsive ────────────────────────────────────────── */
 @media (max-width: 639px) {

@@ -18,16 +18,11 @@ img { max-width: 100%; height: auto; }
 /* Prevent horizontal scroll globally */
 html, body { overflow-x: hidden; }
 
-/* App footer wraps on small screens */
+/* App footer — always stacked and centred */
 .app-footer {
-  flex-wrap: wrap;
-  gap: 0.5rem;
   padding: 1rem 1.25rem;
   font-size: 0.72rem;
-  text-align: center;
 }
-.app-footer__copyright { flex: 1 1 100%; text-align: center; }
-.app-footer__brand     { justify-content: center; }
 
 /* Toast — full width on small screens */
 .toast {
@@ -295,15 +290,6 @@ html, body { overflow-x: hidden; }
 
   .ticket-table-wrap { display: block; }
   .ticket-cards      { display: none; }
-
-  /* App footer — side by side */
-  .app-footer {
-    flex-wrap: nowrap;
-    padding: 1.25rem 2rem;
-    font-size: 0.8rem;
-  }
-  .app-footer__copyright { flex: 1 1 auto; text-align: left; }
-  .app-footer__brand     { justify-content: flex-end; }
 }
 
 /* ══════════════════════════════════════════════════════════════

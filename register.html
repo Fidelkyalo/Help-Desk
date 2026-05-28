@@ -169,6 +169,49 @@
 
     .reg-page { display: none; }
     .reg-page.active { display: block; }
+
+    /* ── Phone input with country code ──────────────────────── */
+    .phone-input-wrap {
+      display: flex;
+      gap: 0;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      background: var(--input-bg);
+    }
+    .phone-input-wrap:focus-within {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-glow);
+    }
+    .phone-dial-select {
+      flex-shrink: 0;
+      width: auto;
+      min-width: 130px;
+      padding: 0.75rem 0.6rem;
+      border: none;
+      border-right: 1.5px solid var(--border);
+      border-radius: 0;
+      background: var(--input-bg);
+      color: var(--text);
+      font-size: 0.85rem;
+      font-family: var(--font);
+      outline: none;
+      cursor: pointer;
+      appearance: auto;
+    }
+    .phone-number-input {
+      flex: 1;
+      border: none !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+      background: var(--input-bg);
+      padding: 0.75rem 1rem;
+    }
+    .phone-number-input:focus {
+      border: none !important;
+      box-shadow: none !important;
+    }
   </style>
 </head>
 <body class="auth-page">
@@ -222,8 +265,28 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="phone">Phone number <span class="text-muted text-sm">(for SMS &amp; WhatsApp)</span></label>
-          <input class="form-input" type="tel" id="phone" placeholder="+1234567890" required autocomplete="tel" />
+          <label class="form-label" for="phoneNumber">Phone number <span class="text-muted text-sm">(for SMS &amp; WhatsApp)</span></label>
+          <div class="phone-input-wrap">
+            <select class="phone-dial-select" id="phoneDialCode" aria-label="Country dial code">
+              <option value="+254" data-flag="🇰🇪">🇰🇪 KEN +254</option>
+              <option value="+1" data-flag="🇺🇸">🇺🇸 USA +1</option>
+              <option value="+44" data-flag="🇬🇧">🇬🇧 GBR +44</option>
+              <option value="+255" data-flag="🇹🇿">🇹🇿 TZA +255</option>
+              <option value="+256" data-flag="🇺🇬">🇺🇬 UGA +256</option>
+              <option value="+251" data-flag="🇪🇹">🇪🇹 ETH +251</option>
+              <option value="+250" data-flag="🇷🇼">🇷🇼 RWA +250</option>
+              <option value="+27" data-flag="🇿🇦">🇿🇦 ZAF +27</option>
+              <option value="+234" data-flag="🇳🇬">🇳🇬 NGA +234</option>
+              <option value="+233" data-flag="🇬🇭">🇬🇭 GHA +233</option>
+              <option value="+91" data-flag="🇮🇳">🇮🇳 IND +91</option>
+              <option value="+86" data-flag="🇨🇳">🇨🇳 CHN +86</option>
+              <option value="+49" data-flag="🇩🇪">🇩🇪 DEU +49</option>
+              <option value="+33" data-flag="🇫🇷">🇫🇷 FRA +33</option>
+              <option value="+971" data-flag="🇦🇪">🇦🇪 UAE +971</option>
+            </select>
+            <input class="form-input phone-number-input" type="tel" id="phoneNumber" placeholder="712 345 678" required autocomplete="tel-national" />
+          </div>
+          <input type="hidden" id="phone" />
           <span class="form-error" id="phoneError"></span>
         </div>
 
@@ -298,7 +361,12 @@
   </div><!-- /auth-card -->
 
   <footer class="auth-page-footer">
-    Ministry of Labour and Social Protection &middot; State Department for Social Protection and Senior Citizen Affairs &middot; GOK &middot; Help Desk Support. &copy; <span id="footerYear">2026</span> All rights reserved.
+    <div class="footer-brand">
+      <img src="Images/Logo.png" alt="Help Desk Logo" /> Help Desk Support
+    </div>
+    <div class="footer-org">Ministry of Labour and Social Protection &middot; State Department for Social Protection and Senior Citizen Affairs &middot; GOK</div>
+    <div class="footer-name">Help Desk Support</div>
+    <div class="footer-copy">&copy; <span id="footerYear">2026</span> All rights reserved.</div>
   </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -308,6 +376,15 @@
   <script src="js/demo-controls.js"></script>
   <script>
     document.getElementById('footerYear').textContent = new Date().getFullYear();
+
+    // ── Combine dial code + number into hidden phone field ────
+    function syncPhone() {
+      const dialCode = document.getElementById('phoneDialCode').value;
+      const number   = document.getElementById('phoneNumber').value.trim().replace(/^0+/, '');
+      document.getElementById('phone').value = number ? dialCode + number : '';
+    }
+    document.getElementById('phoneDialCode').addEventListener('change', syncPhone);
+    document.getElementById('phoneNumber').addEventListener('input', syncPhone);
 
     // Redirect if already logged in
     (async () => {
@@ -466,6 +543,7 @@
       e.preventDefault();
       const fullName = document.getElementById('fullName').value.trim();
       const email    = document.getElementById('email').value.trim();
+      syncPhone();
       const phone    = document.getElementById('phone').value.trim();
       const pfNumber = document.getElementById('pfNumber').value.trim();
       const password = document.getElementById('password').value;

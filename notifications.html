@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Notifications - Help Desk</title>
+  <link rel="icon" type="image/png" href="Images/Logo.png" />
+  <link rel="shortcut icon" type="image/png" href="Images/Logo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/main.css" />
+  <link rel="stylesheet" href="css/dashboard.css" />
+  <link rel="stylesheet" href="css/tickets.css" />
+  <link rel="stylesheet" href="css/responsive.css" />
+  <script src="js/theme.js"></script>
+  <style>
+    @keyframes slideUp {
+      from { transform: translateY(16px); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+    .notif-item {
+      display: flex;
+      gap: 0.875rem;
+      align-items: flex-start;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem 1.125rem;
+      animation: slideUp 0.3s ease;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .notif-item:hover {
+      border-color: var(--border-hover);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    }
+    .notif-icon {
+      font-size: 1.35rem;
+      flex-shrink: 0;
+      margin-top: 0.1rem;
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .notif-body { flex: 1; min-width: 0; }
+    .notif-subject {
+      font-size: 0.875rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 0.25rem;
+    }
+    .notif-message {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.55;
+      word-break: break-word;
+    }
+    .notif-time {
+      font-size: 0.7rem;
+      color: var(--text-light);
+      margin-top: 0.4rem;
+      font-weight: 500;
+    }
+    .notif-empty {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: var(--text-muted);
+    }
+    .notif-empty__icon { font-size: 3rem; margin-bottom: 1rem; opacity: 0.5; }
+    .notif-empty__title { font-size: 1.1rem; font-weight: 700; color: var(--text); margin-bottom: 0.5rem; }
+    .notif-empty__sub { font-size: 0.875rem; }
+    .notif-filter-bar {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.5rem;
+    }
+    .notif-filter-btn {
+      padding: 0.35rem 0.875rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: none;
+      color: var(--text-muted);
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+    .notif-filter-btn:hover,
+    .notif-filter-btn.active {
+      background: var(--primary-light);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+  </style>
+</head>
+<body>
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<div class="app">
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <a href="dashboard.html" class="sidebar__brand">
+      <div class="sidebar__brand-icon">
+        <img src="Images/Logo.png" alt="Help Desk Logo" />
+      </div>
+      <div>
+        <div class="sidebar__brand-name">Help Desk</div>
+        <div class="sidebar__brand-sub">Support Portal</div>
+      </div>
+    </a>
+    <nav class="sidebar__nav">
+      <div class="sidebar__section-label">Menu</div>
+      <a href="dashboard.html" class="sidebar__link">
+        <span class="sidebar__link-icon">🏠</span> Dashboard
+      </a>
+      <a href="ticket-new.html" class="sidebar__link">
+        <span class="sidebar__link-icon">➕</span> Report Issue
+      </a>
+      <a href="notifications.html" class="sidebar__link active">
+        <span class="sidebar__link-icon">🔔</span> Notifications
+      </a>
+      <a href="settings.html" class="sidebar__link">
+        <span class="sidebar__link-icon">⚙️</span> Settings
+      </a>
+      <button class="theme-toggle sidebar__link" aria-label="Toggle theme">
+        <span class="sidebar__link-icon" id="themeIcon">🌙</span> <span id="themeLabel">Dark Mode</span>
+      </button>
+    </nav>
+    <div class="sidebar__footer">
+      <div class="sidebar__user">
+        <div class="sidebar__avatar" id="userAvatar">?</div>
+        <div class="sidebar__user-info">
+          <div class="sidebar__user-name" id="userName">Loading…</div>
+          <div class="sidebar__user-role">Member</div>
+        </div>
+        <button class="sidebar__logout" id="logoutBtn" title="Logout">Log out</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <header class="header">
+      <div class="header__left">
+        <button class="hamburger" id="hamburger" aria-label="Toggle menu">☰</button>
+        <div>
+          <div class="header__title">Notifications</div>
+          <div class="header__subtitle">Admin replies and ticket updates</div>
+        </div>
+      </div>
+      <a href="dashboard.html" class="btn btn--secondary btn--sm">← Back</a>
+    </header>
+
+    <main class="content">
+      <div style="max-width:720px">
+
+        <!-- Top bar: count + clear -->
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem;">
+          <div>
+            <div class="page-title" style="font-size:1.4rem;">
+              🔔 Notifications
+              <span id="notifBadge" style="
+                display:none;
+                background:linear-gradient(135deg,#4f46e5,#6366f1);
+                color:#fff;font-size:0.65rem;font-weight:700;
+                padding:0.2rem 0.6rem;border-radius:999px;
+                vertical-align:middle;margin-left:0.4rem;
+              ">0</span>
+            </div>
+            <div class="page-subtitle">Admin replies and ticket resolutions, saved even after pop-ups dismiss.</div>
+          </div>
+          <button id="clearNotifsBtn" class="btn btn--secondary btn--sm">🗑 Clear All</button>
+        </div>
+
+        <!-- Filter pills -->
+        <div class="notif-filter-bar">
+          <button class="notif-filter-btn active" data-filter="all">All</button>
+          <button class="notif-filter-btn" data-filter="reply">💬 Replies</button>
+          <button class="notif-filter-btn" data-filter="resolved">✅ Resolved</button>
+          <button class="notif-filter-btn" data-filter="status">ℹ️ Status</button>
+          <button class="notif-filter-btn" data-filter="submitted">🎫 Submitted</button>
+        </div>
+
+        <!-- Notifications list -->
+        <div id="notifList" style="display:flex;flex-direction:column;gap:0.75rem;">
+          <div id="notifEmpty" class="notif-empty">
+            <div class="notif-empty__icon">🔕</div>
+            <div class="notif-empty__title">No notifications yet</div>
+            <div class="notif-empty__sub">Admin replies and ticket resolutions will appear here.</div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+
+    <footer class="app-footer">
+      <div class="app-footer__copyright">
+        Ministry of Labour and Social Protection &middot; State Department for Social Protection and Senior Citizen Affairs &middot; GOK &middot; Help Desk Support. &copy; <span id="footerYear">2026</span> All rights reserved.
+      </div>
+      <div class="app-footer__brand">
+        <img src="Images/Logo.png" alt="Help Desk Logo" style="width:16px;height:16px;display:inline-block;vertical-align:middle;margin-right:4px;" /> Help Desk Support
+      </div>
+    </footer>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-client.js?v=3"></script>
+<script src="js/utils.js"></script>
+<script src="js/auth.js?v=3"></script>
+<script src="js/tickets.js"></script>
+<script src="js/notifications.js"></script>
+<script src="js/demo-controls.js"></script>
+<script>
+  let currentUser = null;
+  let activeFilter = 'all';
+
+  const iconMap  = { resolved: '✅', reply: '💬', status: 'ℹ️', submitted: '🎫' };
+  const colorMap = { resolved: '#10b981', reply: '#4f46e5', status: '#f59e0b', submitted: '#3b82f6' };
+  const bgMap    = { resolved: 'rgba(16,185,129,0.1)', reply: 'rgba(79,70,229,0.1)', status: 'rgba(245,158,11,0.1)', submitted: 'rgba(59,130,246,0.1)' };
+
+  async function init() {
+    document.getElementById('footerYear').textContent = new Date().getFullYear();
+    const session = await requireCustomer();
+    if (!session) return;
+    currentUser = session.user;
+
+    const profile = await getCurrentProfile();
+    if (profile) {
+      document.getElementById('userName').textContent = profile.full_name || 'User';
+      document.getElementById('userAvatar').textContent = (profile.full_name || 'U')[0].toUpperCase();
+    } else if (currentUser?.email) {
+      const n = currentUser.email.split('@')[0];
+      document.getElementById('userName').textContent = n;
+      document.getElementById('userAvatar').textContent = n[0].toUpperCase();
+    }
+
+    watchSuspensionStatus(currentUser.id);
+    renderNotifications();
+  }
+
+  function renderNotifications() {
+    if (!currentUser) return;
+    const key   = 'notifs_' + currentUser.id;
+    const all   = JSON.parse(localStorage.getItem(key) || '[]');
+    const items = activeFilter === 'all' ? all : all.filter(n => n.type === activeFilter);
+
+    const list  = document.getElementById('notifList');
+    const empty = document.getElementById('notifEmpty');
+    const badge = document.getElementById('notifBadge');
+
+    // Clear rendered items (keep empty placeholder)
+    Array.from(list.children).forEach(c => { if (c.id !== 'notifEmpty') c.remove(); });
+
+    if (!all.length) {
+      empty.style.display = 'block';
+      badge.style.display = 'none';
+      return;
+    }
+
+    badge.style.display = 'inline-block';
+    badge.textContent   = all.length > 99 ? '99+' : all.length;
+
+    if (!items.length) {
+      empty.style.display = 'block';
+      empty.querySelector('.notif-empty__title').textContent = 'No notifications in this category';
+      empty.querySelector('.notif-empty__sub').textContent   = 'Try selecting a different filter above.';
+      return;
+    }
+
+    empty.style.display = 'none';
+
+    [...items].reverse().forEach(n => {
+      const icon  = iconMap[n.type]  || '🔔';
+      const color = colorMap[n.type] || '#6366f1';
+      const bg    = bgMap[n.type]    || 'rgba(99,102,241,0.1)';
+
+      const el = document.createElement('div');
+      el.className = 'notif-item';
+      el.style.borderLeftColor = color;
+      el.style.borderLeftWidth = '3px';
+      el.innerHTML = `
+        <div class="notif-icon" style="background:${bg};color:${color};">${icon}</div>
+        <div class="notif-body">
+          <div class="notif-subject">${escapeHtml(n.subject || 'Notification')}</div>
+          <div class="notif-message">${escapeHtml(n.message)}</div>
+          <div class="notif-time">${new Date(n.ts).toLocaleString()}</div>
+        </div>
+      `;
+      list.appendChild(el);
+    });
+  }
+
+  // Filter pills
+  document.querySelectorAll('.notif-filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.notif-filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeFilter = btn.dataset.filter;
+      renderNotifications();
+    });
+  });
+
+  // Clear all
+  document.getElementById('clearNotifsBtn').addEventListener('click', () => {
+    if (!currentUser) return;
+    if (!confirm('Clear all notifications? This cannot be undone.')) return;
+    localStorage.removeItem('notifs_' + currentUser.id);
+    renderNotifications();
+  });
+
+  // Hamburger
+  document.getElementById('hamburger').addEventListener('click', () => {
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('sidebarOverlay').classList.toggle('active');
+  });
+  document.getElementById('sidebarOverlay').addEventListener('click', () => {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebarOverlay').classList.remove('active');
+  });
+
+  document.getElementById('logoutBtn').addEventListener('click', logout);
+  init();
+</script>
+</body>
+</html>
